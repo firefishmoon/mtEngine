@@ -1,0 +1,6 @@
+/.cache
+/tmp
+/vcpkg
+compile_commands.json
+/bin
+/lib
