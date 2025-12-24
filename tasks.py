@@ -119,6 +119,15 @@ def install(c):
     cmd = ["cmake", "--install", str(build_path)]
     c.run(" ".join(cmd), env={"DESTDIR": str(install_path)}, pty=pty)
 
+@task
+def run(c):
+    install_path = get_install_path()
+    bin_path = install_path / "bin" / "mtEngine.exe" if sys.platform == 'win32' else install_path / "bin" / "mtEngine"
+    if not bin_path.exists():
+        print("Error: binary doesn't exist. Please build and install first.")
+        return
+    c.run(str(bin_path), pty=pty)
+
 
 @task
 def clean(c):

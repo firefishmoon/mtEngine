@@ -12,7 +12,9 @@ message(STATUS "glfw3_DIR = ${glfw3_DIR}")
 
 find_package(glfw3 CONFIG REQUIRED)
 
-add_executable(mtEngine main.cpp)
+add_executable(mtEngine 
+    core/jobsystem.cpp
+    main.cpp)
 target_link_libraries(mtEngine PRIVATE core)
 
 target_link_libraries(mtEngine PRIVATE glfw)
