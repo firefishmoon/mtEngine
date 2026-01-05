@@ -3,4 +3,5 @@ project(cpp_template CXX)
 
 set(CMAKE_CXX_FLAGS "-std=c++20")
 
-add_subdirectory(src)
+add_subdirectory(engine/src)
+add_subdirectory(testbed)

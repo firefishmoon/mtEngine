@@ -122,7 +122,7 @@ def install(c):
 @task
 def run(c):
     install_path = get_install_path()
-    bin_path = install_path / "bin" / "mtEngine.exe" if sys.platform == 'win32' else install_path / "bin" / "mtEngine"
+    bin_path = install_path / "bin" / "testbed.exe" if sys.platform == 'win32' else install_path / "bin" / "mtEngine"
     if not bin_path.exists():
         print("Error: binary doesn't exist. Please build and install first.")
         return

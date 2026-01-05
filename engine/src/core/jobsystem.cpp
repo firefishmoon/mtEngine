@@ -24,30 +24,30 @@ struct _JobTask {
     }
 };
 
-_JobTask JobTaskFunc(std::queue<Job>& jobQueue) {
+_JobTask JobTaskFunc(std::queue<mtJob>& jobQueue) {
     while (!jobQueue.empty()) {
-        Job job = jobQueue.front();
+        mtJob job = jobQueue.front();
         jobQueue.pop();
         job.run();
     }
     co_return;
 }
 
-void JobSystem::initialize(unsigned int numThreads) {
+void mtJobSystem::initialize(unsigned int numThreads) {
     std::cout << "JobSystem initialized with " << numThreads << " threads." << std::endl;
     // Initialize job system with specified number of threads
 }
 
-void JobSystem::shutdown() {
+void mtJobSystem::shutdown() {
     // Shutdown job system and clean up resources
 }
 
-void JobSystem::addJob(Job& job) {
+void mtJobSystem::addJob(mtJob& job) {
     // Add job to the job queue for execution
     _jobQueue.push(job);
 }
 
-void JobSystem::runJobs() {
+void mtJobSystem::runJobs() {
     // Run all jobs in the job queue
     auto jobTask = JobTaskFunc(_jobQueue); 
     jobTask.resume();

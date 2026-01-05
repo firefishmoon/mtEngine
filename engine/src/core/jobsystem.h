@@ -2,11 +2,12 @@
 
 #include <functional>
 #include <queue>
+#include "../defines.h"
 #include "singleton.h"
 
-class Job {
+class MT_API mtJob {
 public:
-    Job(std::function<void(void*)> func, void* param)
+    mtJob(std::function<void(void*)> func, void* param)
     : _func(func), _param(param) {}
 
     void run() {
@@ -18,16 +19,16 @@ private:
 
 };
 
-class JobSystem : public Singleton<JobSystem> {
+class MT_API mtJobSystem : public Singleton<mtJobSystem> {
 public:
-    JobSystem() = default;
-    ~JobSystem() = default;
+    mtJobSystem() = default;
+    ~mtJobSystem() = default;
 
     void initialize(unsigned int numThreads);
     void shutdown();
 
-    void addJob(Job& job);
+    void addJob(mtJob& job);
     void runJobs();
 private:
-    std::queue<Job> _jobQueue; 
+    std::queue<mtJob> _jobQueue; 
 };

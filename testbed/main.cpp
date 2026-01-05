@@ -51,20 +51,20 @@ Task TaskFunc() {
 }
 
 void test_job() {
-    Job job = Job {[](void*) {
+    mtJob job = mtJob {[](void*) {
         std::cout << "RunJob" << std::endl;
         for (int i = 0; i < 5; ++i) {
-            Job innerJob = Job {[](void* param) {
+            mtJob innerJob = mtJob {[](void* param) {
                 int index = *static_cast<int*>(param);
                 std::cout << "  Inner Job " << index << " running." << std::endl;
             }, new int(i)};
-            JobSystem::instance()->addJob(innerJob);
+            mtJobSystem::instance()->addJob(innerJob);
         }
     }, NULL};
     // job.Run();
-    JobSystem::instance()->initialize(4);
-    JobSystem::instance()->addJob(job);
-    JobSystem::instance()->runJobs();
+    mtJobSystem::instance()->initialize(4);
+    mtJobSystem::instance()->addJob(job);
+    mtJobSystem::instance()->runJobs();
 }
 
 int main() {
