@@ -33,13 +33,15 @@ _JobTask JobTaskFunc(std::queue<mtJob>& jobQueue) {
     co_return;
 }
 
-void mtJobSystem::initialize(unsigned int numThreads) {
-    std::cout << "JobSystem initialized with " << numThreads << " threads." << std::endl;
+b8 mtJobSystem::initialize() {
+    std::cout << "JobSystem initialized with " << _numThreads << " threads." << std::endl;
     // Initialize job system with specified number of threads
+    return true;
 }
 
-void mtJobSystem::shutdown() {
+b8 mtJobSystem::shutdown() {
     // Shutdown job system and clean up resources
+    return true;
 }
 
 void mtJobSystem::addJob(mtJob& job) {

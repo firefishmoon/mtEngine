@@ -3,7 +3,7 @@
 #include <functional>
 #include <queue>
 #include "../defines.h"
-#include "singleton.h"
+#include "../common/singleton.h"
 
 class MT_API mtJob {
 public:
@@ -21,14 +21,15 @@ private:
 
 class MT_API mtJobSystem : public Singleton<mtJobSystem> {
 public:
-    mtJobSystem() = default;
+    explicit mtJobSystem(u32 numThreads) : _numThreads(numThreads) {};
     ~mtJobSystem() = default;
 
-    void initialize(unsigned int numThreads);
-    void shutdown();
+    b8 initialize() override;
+    b8 shutdown() override;
 
     void addJob(mtJob& job);
     void runJobs();
 private:
     std::queue<mtJob> _jobQueue; 
+    u32 _numThreads;
 };

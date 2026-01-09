@@ -1,6 +1,6 @@
 
 add_library(mtengine SHARED 
-./core/test.cpp
+./core/loggersystem.cpp
 ./core/jobsystem.cpp)
 
 # When building the shared library we must export symbols (on Windows use dllexport).

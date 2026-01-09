@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../defines.h"
 #include <stdexcept>
 
 template <typename T>
@@ -25,8 +26,12 @@ public:
         _instance = nullptr;
     }
 
-    Singleton() = default;
     virtual ~Singleton() = default;
+
+    virtual b8 initialize() = 0;
+    virtual b8 shutdown() = 0;
+protected:
+    Singleton() = default;
 private:
     Singleton(const Singleton&) = delete;
     Singleton& operator=(const Singleton&) = delete;
@@ -34,3 +39,5 @@ private:
 };
 
 template <typename T> T* Singleton<T>::_instance = nullptr;
+
+

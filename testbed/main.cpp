@@ -1,12 +1,11 @@
 #include <iostream>
 #include <stdio.h>
 #include <coroutine>
-#include "core/test.h"
 #include <thread>
 #include <chrono>
 
-#include "core/singleton.h"
 #include "core/jobsystem.h"
+#include "core/loggersystem.h"
 // #include <GLFW/glfw3.h>
 
 using namespace std;
@@ -58,19 +57,26 @@ void test_job() {
                 int index = *static_cast<int*>(param);
                 std::cout << "  Inner Job " << index << " running." << std::endl;
             }, new int(i)};
-            mtJobSystem::instance()->addJob(innerJob);
+            mtJobSystem::getInstance()->addJob(innerJob);
         }
     }, NULL};
     // job.Run();
-    mtJobSystem::instance()->initialize(4);
-    mtJobSystem::instance()->addJob(job);
-    mtJobSystem::instance()->runJobs();
+    mtJobSystem::instance(4);
+    mtJobSystem::getInstance()->initialize();
+    mtJobSystem::getInstance()->addJob(job);
+    mtJobSystem::getInstance()->runJobs();
 }
 
+void test_logger() {
+    mtLoggerSystem::instance();
+    mtLoggerSystem::getInstance()->initialize();
+    mtLoggerSystem::getInstance()->log(LogLevel::INFO, "This is an info message: {}", 42);
+    mtLoggerSystem::getInstance()->log(LogLevel::ERROR, "This is an error message: {}", "error details");
+    mtLoggerSystem::getInstance()->shutdown();
+}
 int main() {
-    std::cout << "Result of add(3, 5): " << add(3, 5) << std::endl;
-
     test_job();
+    test_logger();
     // TaskFunc();
     // glfwInit();
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
