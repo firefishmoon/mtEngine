@@ -1,8 +1,13 @@
 #pragma once
+
+#ifdef _WIN32
 #ifdef MT_EXPORTS
 #  define MT_API __declspec(dllexport)   // 编译 DLL 时用
 #else
 #  define MT_API __declspec(dllimport)   // 调用 DLL 时用
+#endif
+#else
+#define MT_API __attribute__((visibility("default")))
 #endif
 
 using b8 = bool;

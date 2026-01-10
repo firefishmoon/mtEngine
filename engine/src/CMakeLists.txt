@@ -8,5 +8,5 @@ add_library(mtengine SHARED
 target_compile_definitions(mtengine PRIVATE MT_EXPORTS)
 
 
-install(TARGETS mtengine)
+install(TARGETS mtengine DESTINATION bin)
 
