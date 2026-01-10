@@ -70,8 +70,12 @@ void test_job() {
 void test_logger() {
     mtLoggerSystem::instance();
     mtLoggerSystem::getInstance()->initialize();
+    mtLoggerSystem::getInstance()->log(LogLevel::TRACE, "This is a trace message: {}", 3.14);
+    mtLoggerSystem::getInstance()->log(LogLevel::DEBUG, "This is a debug message: {}", "debug details");
     mtLoggerSystem::getInstance()->log(LogLevel::INFO, "This is an info message: {}", 42);
+    mtLoggerSystem::getInstance()->log(LogLevel::WARN, "This is a warn message: {}", "warn details");
     mtLoggerSystem::getInstance()->log(LogLevel::ERROR, "This is an error message: {}", "error details");
+    mtLoggerSystem::getInstance()->log(LogLevel::FATAL, "This is an fatal message: {}", "fatal details");
     mtLoggerSystem::getInstance()->shutdown();
 }
 int main() {
