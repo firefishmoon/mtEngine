@@ -20,6 +20,8 @@ target_include_directories(testbed PRIVATE ${CMAKE_SOURCE_DIR}/engine/src)
 
 target_link_libraries(testbed PRIVATE mtengine)
 
+set_target_properties(testbed PROPERTIES BUILD_RPATH "${CMAKE_BINARY_DIR}/engine/src" INSTALL_RPATH "@executable_path")
+
 target_link_libraries(testbed PRIVATE glfw)
 
 install(TARGETS testbed)
