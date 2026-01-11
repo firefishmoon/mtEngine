@@ -1,6 +1,9 @@
 #include <iostream>
 #include <coroutine>
+#include "loggersystem.h"
 #include "jobsystem.h"
+
+template<> MT_API mtJobSystem* Singleton<mtJobSystem>::_instance = nullptr;
 
 struct _JobTask {
     struct promise_type {
@@ -34,7 +37,8 @@ _JobTask JobTaskFunc(std::queue<mtJob>& jobQueue) {
 }
 
 b8 mtJobSystem::initialize() {
-    std::cout << "JobSystem initialized with " << _numThreads << " threads." << std::endl;
+    //std::cout << "JobSystem initialized with " << _numThreads << " threads." << std::endl;
+    MT_LOG_INFO("JobSystem initialized with {} threads.", _numThreads);
     // Initialize job system with specified number of threads
     return true;
 }

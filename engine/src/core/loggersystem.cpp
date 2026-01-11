@@ -2,6 +2,8 @@
 #include <chrono>
 #include "loggersystem.h"
 
+template<> MT_API mtLoggerSystem* Singleton<mtLoggerSystem>::_instance = nullptr;
+
 b8 mtLoggerSystem::initialize() {
     // Initialize logger system (e.g., open log files, set up log levels)
     return true;

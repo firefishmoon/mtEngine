@@ -73,3 +73,11 @@ public:
 // #endif
        
 };
+
+#define MT_LOG_TRACE(...) mtLoggerSystem::getInstance()->log(LogLevel::TRACE, __VA_ARGS__)
+#define MT_LOG_DEBUG(...) mtLoggerSystem::getInstance()->log(LogLevel::DEBUG, __VA_ARGS__)
+#define MT_LOG_INFO(...)  mtLoggerSystem::getInstance()->log(LogLevel::INFO,  __VA_ARGS__)
+#define MT_LOG_WARN(...)  mtLoggerSystem::getInstance()->log(LogLevel::WARN,  __VA_ARGS__)
+#define MT_LOG_ERROR(...) mtLoggerSystem::getInstance()->log(LogLevel::ERROR, __VA_ARGS__)
+#define MT_LOG_FATAL(...) mtLoggerSystem::getInstance()->log(LogLevel::FATAL, __VA_ARGS__)
+

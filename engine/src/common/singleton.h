@@ -38,6 +38,7 @@ private:
     static T* _instance;
 };
 
-template <typename T> T* Singleton<T>::_instance = nullptr;
+// Definition of the templated static `_instance` is provided
+// as explicit instantiations in `singleton.cpp` for exported types.
 
 
