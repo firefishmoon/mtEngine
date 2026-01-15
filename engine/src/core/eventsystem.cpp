@@ -29,8 +29,8 @@ b8 mtEventSystem::unregisterEvent(mtEventType event, size_t token) {
     return false;
 }
 
-void mtEventSystem::emitEvent(mtEventType event) {
-    for (auto &entry : _eventHandlers[static_cast<int>(event)]) {
+void mtEventSystem::emitEvent(mtEvent event) {
+    for (auto &entry : _eventHandlers[static_cast<int>(event.type)]) {
         entry.second(event);
     }
 }

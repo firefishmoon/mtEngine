@@ -8,6 +8,7 @@
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
 #include "core/eventsystem.h"
+#include "core/application.h"
 // #include <GLFW/glfw3.h>
 
 using namespace std;
@@ -96,30 +97,34 @@ void test_memory() {
 }
 
 void test_event() {
-    auto token = mtEventSystem::getInstance()->registerEvent(mtEventType::CUSTOM, [](mtEventType type) {
+    auto token = mtEventSystem::getInstance()->registerEvent(mtEventType::CUSTOM, [](mtEvent event) {
         MT_LOG_TRACE("event handled");
     });
-    mtEventSystem::getInstance()->emitEvent(mtEventType::CUSTOM);
+    mtEventSystem::getInstance()->emitEvent({mtEventType::CUSTOM, 0});
     mtEventSystem::getInstance()->unregisterEvent(mtEventType::CUSTOM, token);
 }
 
 int main() {
-    mtLoggerSystem::instance();
-    mtLoggerSystem::getInstance()->initialize();
-    
-    mtMemorySystem::instance();
-    mtMemorySystem::getInstance()->initialize();
-    mtJobSystem::instance(4);
-    mtJobSystem::getInstance()->initialize();
-
-    mtEventSystem::instance();
-    mtEventSystem::getInstance()->instance();
+    mtAppConfig config = {"testbed", 800, 600};
+    mtApplication::instance(config);
+    mtApplication::getInstance()->initialize();
 
     test_logger();
     test_job();
     test_memory();
     test_event();
-    // TaskFunc();
+
+    mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_PRESS, [](mtEvent event) {
+        MT_LOG_INFO("Key pressed: {}", event.data);
+    });
+    mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_RELEASE, [](mtEvent event) {
+        MT_LOG_INFO("Key release: {}", event.data);
+    });
+
+    mtApplication::getInstance()->run();
+
+    mtApplication::getInstance()->shutdown();
+   // TaskFunc();
     // glfwInit();
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -138,7 +143,7 @@ int main() {
     //     glfwPollEvents();
     //     glfwSwapBuffers(window);
     // }
-    std:this_thread::sleep_for(std::chrono::seconds(2));
+    // std:this_thread::sleep_for(std::chrono::seconds(2));
     // glfwTerminate();
     return 0;
 }

@@ -7,10 +7,10 @@ else()
     set(_vcpkg_root "${CMAKE_SOURCE_DIR}/vcpkg")
 endif()
 
-set(glfw3_DIR "${_vcpkg_root}/installed/x64-mingw-static/share/glfw3" CACHE PATH "Path to glfw3-config.cmake directory")
-message(STATUS "glfw3_DIR = ${glfw3_DIR}")
+# set(glfw3_DIR "${_vcpkg_root}/installed/x64-mingw-static/share/glfw3" CACHE PATH "Path to glfw3-config.cmake directory")
+# message(STATUS "glfw3_DIR = ${glfw3_DIR}")
 
-find_package(glfw3 CONFIG REQUIRED)
+# find_package(glfw3 CONFIG REQUIRED)
 
 add_executable(testbed 
     main.cpp)
@@ -22,6 +22,5 @@ target_link_libraries(testbed PRIVATE mtengine)
 
 set_target_properties(testbed PROPERTIES BUILD_RPATH "${CMAKE_BINARY_DIR}/engine/src" INSTALL_RPATH "@executable_path")
 
-target_link_libraries(testbed PRIVATE glfw)
 
 install(TARGETS testbed)

@@ -7,14 +7,22 @@
 
 enum class mtEventType {
     NONE = 0,
-    KEYBOARD,
+    KEYBOARD_PRESS,
+    KEYBOARD_RELEASE,
+    KEYBOARD_REPEAT,
     MOUSE,
     WINDOW,
     CUSTOM,
     COUNT
 };
 
-typedef std::function<void(mtEventType)> mtEventHandler;
+struct mtEvent {
+    mtEventType type;
+    // Additional event data can be added here
+    u32 data;
+};
+
+typedef std::function<void(mtEvent)> mtEventHandler;
 
 class MT_API mtEventSystem : public Singleton<mtEventSystem> {
 public:
@@ -30,7 +38,7 @@ public:
     // Unregister by token returned from registerEvent. Returns true if removed.
     b8 unregisterEvent(mtEventType event, size_t token);
 
-    void emitEvent(mtEventType event);
+    void emitEvent(mtEvent event);
 
 private:
     std::vector<std::pair<size_t, mtEventHandler>> _eventHandlers[static_cast<int>(mtEventType::COUNT)];
