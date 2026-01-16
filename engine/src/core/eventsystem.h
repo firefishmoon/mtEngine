@@ -12,6 +12,7 @@ enum class mtEventType {
     KEYBOARD_REPEAT,
     MOUSE,
     WINDOW,
+    FRAME,
     CUSTOM,
     COUNT
 };
@@ -19,7 +20,14 @@ enum class mtEventType {
 struct mtEvent {
     mtEventType type;
     // Additional event data can be added here
-    u32 data;
+    union {
+        u32 data;
+        f32 fdata;
+    };
+
+    mtEvent() : type(mtEventType::NONE), data(0) {}
+    mtEvent(mtEventType t, u32 d) : type(t), data(d) {}
+    mtEvent(mtEventType t, f32 fd) : type(t), fdata(fd) {}
 };
 
 typedef std::function<void(mtEvent)> mtEventHandler;

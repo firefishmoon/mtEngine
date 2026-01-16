@@ -51,6 +51,10 @@ static void key_callback(GLFWwindow *win, int key, int sc, int act, int mods) {
 }
 
 void mtApplication::run() {
+    const double FPS = 60.0;
+    const double FRAME_DT = 1.0 / FPS;
+    double lastTime = 0.0;
+    double accumulator = 0.0;
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -67,8 +71,17 @@ void mtApplication::run() {
         return;
     }
     glfwSetKeyCallback(window, key_callback);
+    lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
+        double currentTime = glfwGetTime();
+        double deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+        glfwWaitEventsTimeout(FRAME_DT);
+        accumulator += deltaTime;
+        while (accumulator >= FRAME_DT) {
+            mtEventSystem::getInstance()->emitEvent({mtEventType::FRAME, static_cast<f32>(FRAME_DT)});
+            accumulator -= FRAME_DT;
+        }
         glfwSwapBuffers(window);
-        glfwWaitEventsTimeout(1.0/60.0); 
     }
 }

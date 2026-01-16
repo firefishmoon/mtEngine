@@ -100,7 +100,7 @@ void test_event() {
     auto token = mtEventSystem::getInstance()->registerEvent(mtEventType::CUSTOM, [](mtEvent event) {
         MT_LOG_TRACE("event handled");
     });
-    mtEventSystem::getInstance()->emitEvent({mtEventType::CUSTOM, 0});
+    mtEventSystem::getInstance()->emitEvent({mtEventType::CUSTOM, 0.0f});
     mtEventSystem::getInstance()->unregisterEvent(mtEventType::CUSTOM, token);
 }
 
@@ -120,7 +120,9 @@ int main() {
     mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_RELEASE, [](mtEvent event) {
         MT_LOG_INFO("Key release: {}", event.data);
     });
-
+    mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [](mtEvent event) {
+        MT_LOG_TRACE("Frame delta: {}", event.fdata);
+    });
     mtApplication::getInstance()->run();
 
     mtApplication::getInstance()->shutdown();
