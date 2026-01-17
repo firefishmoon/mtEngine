@@ -1,7 +1,7 @@
 
 # My Experimental GameEngine
 
-It's gone be a big hole needs to be filled.
+It's gonna be a big hole needs to be filled.
 
 Tools used:
 
@@ -67,3 +67,6 @@ Engine dependency
 vcpkg install glfw3:x64-mingw-static
 
 ```
+Install vulkan sdk
+
+[`Download`](https://vulkan.lunarg.com/sdk/home#windows) the vulkan sdk and follow the instructions for installation.

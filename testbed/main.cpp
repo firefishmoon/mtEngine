@@ -114,6 +114,8 @@ int main() {
     test_memory();
     test_event();
 
+    mtLoggerSystem::getInstance()->setLogLevel(LogLevel::INFO);
+
     mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_PRESS, [](mtEvent event) {
         MT_LOG_INFO("Key pressed: {}", event.data);
     });

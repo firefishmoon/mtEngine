@@ -4,6 +4,8 @@
 #include "memorysystem.h"
 #include "jobsystem.h"
 
+#include "../render/rendersystem.h"
+// #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 template<> MT_API mtApplication* Singleton<mtApplication>::_instance = nullptr;
@@ -19,6 +21,10 @@ b8 mtApplication::initialize() {
 
     mtEventSystem::instance();
     mtEventSystem::getInstance()->instance();
+
+    mtRenderSettings renderSettings {mtBackendAPI::VULKAN};
+    mtRenderSystem::instance(renderSettings);
+    mtRenderSystem::getInstance()->initialize();
     MT_LOG_INFO("Application Initialized");
     return true;
 }
@@ -58,7 +64,7 @@ void mtApplication::run() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     GLFWwindow* window = glfwCreateWindow(
         _config.width, 
         _config.height, 

@@ -52,15 +52,24 @@ public:
     b8 initialize() override;
     b8 shutdown() override;
 
-    std::string getTimestamp();
+    void setLogLevel(LogLevel level) {
+        _currentLogLevel = level;
+    }
 
 // #if STD_FORMAT_SUPPORTED()
     template<typename... Args>
     void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) { // Use std::format_string for compile-time checked format strings
+        // Check if the log level is sufficient
+        if (static_cast<int>(level) < static_cast<int>(_currentLogLevel)) {
+            return;
+        }
         std::string message = std::format(fmt, std::forward<Args>(args)...);
         // Log the message with the specified log level
         std::cout << level_color[static_cast<int>(level)] << "[" << getTimestamp() << "]" << "[" << level_str[static_cast<int>(level)] << "] " << message << Color::Reset << std::endl;
     }
+private:
+    std::string getTimestamp();
+    LogLevel _currentLogLevel = LogLevel::TRACE;
 // #else
     // void log(LogLevel level, const char* fmt, ...) {
     //     char msgbuf[1024];
