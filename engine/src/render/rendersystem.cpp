@@ -1,6 +1,7 @@
 #include "rendersystem.h"
 #include "vulkan/vulkan_backend.h"
 #include "core/loggersystem.h"
+#include "core/memorysystem.h"
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
@@ -13,7 +14,7 @@ b8 mtRenderSystem::initialize() {
             break;
         case mtBackendAPI::VULKAN:
             // Initialize Vulkan backend
-            _backend = new mtVulkanBackend();
+            _backend = MT_NEW(mtMemTag::RENDERING, mtVulkanBackend);
             break;
         case mtBackendAPI::DIRECTX12:
             // Initialize DirectX 12 backend

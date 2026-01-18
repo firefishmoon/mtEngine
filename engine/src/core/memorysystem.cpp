@@ -7,7 +7,7 @@ template<> MT_API mtMemorySystem* Singleton<mtMemorySystem>::_instance = nullptr
 
 struct _mtMemHeader {
     size_t size;
-    MemTag tag;
+    mtMemTag tag;
 };
 
 b8 mtMemorySystem::initialize() {
@@ -22,7 +22,7 @@ b8 mtMemorySystem::shutdown() {
     return true;
 }
 
-void* mtMemorySystem::allocate(size_t size, MemTag tag) {
+void* mtMemorySystem::allocate(mtMemTag tag, size_t size) {
     const u32 realsize = static_cast<u32>(size + sizeof(_mtMemHeader));
     void* ptr = malloc(realsize);
     _mtMemHeader* header = static_cast<_mtMemHeader*>(ptr);
@@ -56,7 +56,7 @@ static const char* mem_tag_str[] = {
 
 void mtMemorySystem::reportMemoryUsage() {
     mtLoggerSystem::getInstance()->log(LogLevel::INFO, "Memory Usage Report:");
-    for (size_t i = 0; i < static_cast<size_t>(MemTag::COUNT); ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(mtMemTag::COUNT); ++i) {
         mtMemTagInfo& info = tagInfos[i];
         // left-align the tag string into a fixed-width column for neat output
         mtLoggerSystem::getInstance()->log(LogLevel::INFO, "  {:<12} : {} bytes in {} allocations", mem_tag_str[i], info.totalAllocated, info.allocationCount);

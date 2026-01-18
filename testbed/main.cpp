@@ -88,8 +88,9 @@ void test_logger() {
 
 void test_memory() {
     std::cout << "test_memory" << std::endl;
-    void* ptr1 = mtMemorySystem::getInstance()->allocate(256, MemTag::GENERAL);
-    void* ptr2 = mtMemorySystem::getInstance()->allocate(512, MemTag::RENDERING);
+    mtMemorySystem::getInstance()->reportMemoryUsage();
+    void* ptr1 = mtMemorySystem::getInstance()->allocate(mtMemTag::GENERAL, 256);
+    void* ptr2 = mtMemorySystem::getInstance()->allocate(mtMemTag::RENDERING, 512);
     mtMemorySystem::getInstance()->reportMemoryUsage();
     mtMemorySystem::getInstance()->deallocate(ptr1);
     mtMemorySystem::getInstance()->deallocate(ptr2);
