@@ -5,8 +5,10 @@
 #include "jobsystem.h"
 
 #include "../render/rendersystem.h"
-// #define GLFW_INCLUDE_VULKAN
+#define GLFW_INCLUDE_VULKAN
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 template<> MT_API mtApplication* Singleton<mtApplication>::_instance = nullptr;
 
@@ -24,7 +26,8 @@ b8 mtApplication::initialize() {
 
     mtRenderSettings renderSettings {mtBackendAPI::VULKAN};
     mtRenderSystem::instance(renderSettings);
-    mtRenderSystem::getInstance()->initialize();
+
+    
     MT_LOG_INFO("Application Initialized");
     return true;
 }
@@ -76,6 +79,14 @@ void mtApplication::run() {
         glfwTerminate();
         return;
     }
+
+    _platformData.hwnd = glfwGetWin32Window(window);
+    _platformData.hInstance = GetModuleHandle(NULL);
+    if (!mtRenderSystem::getInstance()->initialize()) {
+        MT_LOG_FATAL("Failed to initialize Render System");
+        return;
+    }
+
     glfwSetKeyCallback(window, key_callback);
     lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {

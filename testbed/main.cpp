@@ -108,7 +108,10 @@ void test_event() {
 int main() {
     mtAppConfig config = {"testbed", 800, 600};
     mtApplication::instance(config);
-    mtApplication::getInstance()->initialize();
+    if (!mtApplication::getInstance()->initialize()) {
+        MT_LOG_FATAL("Failed to initialize application");
+        return -1;
+    }
 
     test_logger();
     test_job();

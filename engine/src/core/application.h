@@ -2,6 +2,7 @@
 
 #include "../defines.h"
 #include "../common/singleton.h"
+#include "platform.h"
 #include <string>
 
 enum class mtInputKeys {
@@ -146,6 +147,8 @@ public:
     b8 shutdown() override;
 
     void run();
+    mtPlatformData getPlatformData() const { return _platformData; }
 private:
     mtAppConfig _config;
+    mtPlatformData _platformData;
 };
