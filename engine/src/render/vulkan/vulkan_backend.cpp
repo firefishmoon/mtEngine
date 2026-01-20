@@ -424,16 +424,14 @@ VkPresentModeKHR mtVulkanBackend::chooseSwapPresentMode(const std::vector<VkPres
 }
 
 VkExtent2D mtVulkanBackend::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-    if (capabilities.currentExtent.width != std::numeric_limits<u32>::max()) {
-        return capabilities.currentExtent;
-    } else {
-        VkExtent2D actualExtent = {800, 600};
-        
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-        
-        return actualExtent;
+    VkExtent2D extent = capabilities.currentExtent;
+    if (extent.width == 0 || extent.height == 0) {
+        extent.width = std::max(800u, capabilities.minImageExtent.width);
+        extent.height = std::max(600u, capabilities.minImageExtent.height);
     }
+    extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    return extent;
 }
 
 b8 mtVulkanBackend::createSwapChain() {
@@ -473,11 +471,12 @@ b8 mtVulkanBackend::createSwapChain() {
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = static_cast<VkPresentModeKHR>(presentMode);
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = _swapChain;  // Use old swapchain for recreation
     
     VkSwapchainKHR swapChain;
-    if (vkCreateSwapchainKHR(_device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to create swap chain!");
+    VkResult result = vkCreateSwapchainKHR(_device, &createInfo, nullptr, &swapChain);
+    if (result != VK_SUCCESS) {
+        MT_LOG_ERROR("Failed to create swap chain! VkResult: {}", static_cast<int>(result));
         return false;
     }
     
@@ -888,7 +887,6 @@ b8 mtVulkanBackend::recreateSwapChain() {
     
     _swapChainFramebuffers.clear();
     _swapChainImageViews.clear();
-    _swapChain = nullptr;
     
     if (!createSwapChain()) {
         return false;

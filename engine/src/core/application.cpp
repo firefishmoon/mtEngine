@@ -59,6 +59,11 @@ static void key_callback(GLFWwindow *win, int key, int sc, int act, int mods) {
     }
 }
 
+static void window_size_callback(GLFWwindow* window, int width, int height) {
+    MT_LOG_DEBUG("Window resized: width={}, height={}", width, height);
+    mtEventSystem::getInstance()->emitEvent({mtEventType::WINDOW_RESIZE, static_cast<u32>(width), static_cast<u32>(height)});
+}
+
 void mtApplication::run() {
     const double FPS = 60.0;
     const double FRAME_DT = 1.0 / FPS;
@@ -86,8 +91,9 @@ void mtApplication::run() {
         MT_LOG_FATAL("Failed to initialize Render System");
         return;
     }
-
+    
     glfwSetKeyCallback(window, key_callback);
+    glfwSetWindowSizeCallback(window, window_size_callback);
     lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();

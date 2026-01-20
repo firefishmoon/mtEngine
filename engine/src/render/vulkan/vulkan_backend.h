@@ -29,6 +29,10 @@ public:
     b8 shutdown() override;
     
     b8 renderFrame() override;
+    b8 onResize(u32 width, u32 height) override {
+        _framebufferResized = true;
+        return true;
+    }
     b8 recreateSwapChain();
     b8 waitDeviceIdle();
     

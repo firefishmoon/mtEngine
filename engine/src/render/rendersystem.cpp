@@ -33,6 +33,12 @@ b8 mtRenderSystem::initialize() {
     mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
         this->renderFrame({});
     });
+    mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
+        // Handle window resize
+        if (_backend) {
+            _backend->onResize(event.resize.width, event.resize.height);
+        }
+    });
     MT_LOG_INFO("Render System Initialized");
     return true;
 }
