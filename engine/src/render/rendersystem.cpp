@@ -2,6 +2,7 @@
 #include "vulkan/vulkan_backend.h"
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
+#include "core/eventsystem.h"
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
@@ -29,6 +30,9 @@ b8 mtRenderSystem::initialize() {
         MT_LOG_ERROR("Failed to initialize rendering backend");
         return false;
     }
+    mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
+        this->renderFrame({});
+    });
     MT_LOG_INFO("Render System Initialized");
     return true;
 }
@@ -42,4 +46,7 @@ b8 mtRenderSystem::shutdown() {
 
 void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
     // Process the render packet and issue draw calls
+    if (_backend) {
+        _backend->renderFrame();
+    }
 }
