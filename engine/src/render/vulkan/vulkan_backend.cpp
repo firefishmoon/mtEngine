@@ -21,93 +21,17 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
-    if (severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT || severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        MT_LOG_ERROR("[VULKAN] validation layer: msg: {}", pCallbackData->pMessage);
-    }
-    return VK_FALSE;
-}
+
 
 b8 mtVulkanBackend::initialize() {
     MT_LOG_INFO("Initializing Vulkan Backend");
 
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "My Experimental GameEngine";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "mtEngine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-
-    std::vector<const char*> requiredLayers;
-    if (enableValidationLayers) {
-        requiredLayers.assign(validationLayers.begin(), validationLayers.end());
-    }
-
-    // validate required layers exist
-    uint32_t layerCount = 0;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-    std::vector<VkLayerProperties> layerProperties(layerCount);
-    if (layerCount > 0) vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
-    for (auto const& requiredLayer : requiredLayers) {
-        bool layerFound = false;
-        for (const auto& layerProperty : layerProperties) {
-            if (strcmp(requiredLayer, layerProperty.layerName) == 0) {
-                layerFound = true;
-                break;
-            }
-        }
-        if (!layerFound) {
-            MT_LOG_ERROR("Required validation layer not available: %s", requiredLayer);
-            return false;
-        }
-    }
-
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-    if (enableValidationLayers) {
-        requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-
-    // validate instance extensions exist
-    uint32_t extCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
-    std::vector<VkExtensionProperties> extensionProperties(extCount);
-    if (extCount > 0) vkEnumerateInstanceExtensionProperties(nullptr, &extCount, extensionProperties.data());
-    for (auto const& requiredExtension : requiredExtensions) {
-        bool extensionFound = false;
-        for (const auto& extensionProperty : extensionProperties) {
-            if (strcmp(requiredExtension, extensionProperty.extensionName) == 0) {
-                extensionFound = true;
-                break;
-            }
-        }
-        if (!extensionFound) {
-            MT_LOG_ERROR("Required extension not available: %s", requiredExtension);
-            return false;
-        }
-    }
-
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size());
-    createInfo.ppEnabledLayerNames = requiredLayers.empty() ? nullptr : requiredLayers.data();
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-    createInfo.ppEnabledExtensionNames = requiredExtensions.empty() ? nullptr : requiredExtensions.data();
-
-    if (vkCreateInstance(&createInfo, nullptr, &_instance) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to create Vulkan instance");
+    if (!_vulkanContext.initialize()) {
+        MT_LOG_ERROR("Failed to initialize Vulkan context!");
         return false;
     }
+    _instance = _vulkanContext.getInstance();
 
-    if (!setupDebugMessenger()) {
-        MT_LOG_ERROR("Failed to set up debug messenger!");
-        return false;
-    }
-    
     if (!createSurface()) {
         MT_LOG_ERROR("Failed to create surface!");
         return false;
@@ -201,25 +125,6 @@ b8 mtVulkanBackend::shutdown() {
     return true;
 }
 
-b8 mtVulkanBackend::setupDebugMessenger() {
-    if (!enableValidationLayers)
-        return true;
-
-    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = &debugCallback;
-
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(_instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        if (func(_instance, &createInfo, nullptr, &_debugMessenger) != VK_SUCCESS) {
-            MT_LOG_ERROR("Failed to set up debug messenger");
-            return false;
-        }
-    }
-    return true;
-}
 
 b8 mtVulkanBackend::pickPhysicalDevice() {
     uint32_t deviceCount = 0;

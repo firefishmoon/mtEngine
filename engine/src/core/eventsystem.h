@@ -4,6 +4,7 @@
 #include <functional>
 #include "../defines.h"
 #include "../common/singleton.h"
+#include "core/std_wrapper.h"
 
 enum class mtEventType {
     NONE = 0,
@@ -54,6 +55,6 @@ public:
     void emitEvent(mtEvent event);
 
 private:
-    std::vector<std::pair<size_t, mtEventHandler>> _eventHandlers[static_cast<int>(mtEventType::COUNT)];
+    std::vector<std::pair<size_t, mtEventHandler>, mtStdAllocator<std::pair<size_t, mtEventHandler>>> _eventHandlers[static_cast<int>(mtEventType::COUNT)];
     size_t _nextHandlerId = 1;
 };

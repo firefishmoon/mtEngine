@@ -26,11 +26,11 @@ void* mtMemorySystem::allocate(mtMemTag tag, size_t size) {
     const u32 realsize = static_cast<u32>(size + sizeof(_mtMemHeader));
     void* ptr = malloc(realsize);
     _mtMemHeader* header = static_cast<_mtMemHeader*>(ptr);
-    header->size = realsize;
+    header->size = size;
     header->tag = tag;
     ptr = static_cast<void*>(static_cast<char*>(ptr) + sizeof(_mtMemHeader));
     mtLoggerSystem::getInstance()->log(LogLevel::DEBUG, "Allocated {} bytes at {}", size, ptr);
-    tagInfos[static_cast<size_t>(tag)].totalAllocated += realsize;
+    tagInfos[static_cast<size_t>(tag)].totalAllocated += size;
     tagInfos[static_cast<size_t>(tag)].allocationCount += 1;
     return ptr;
 }
@@ -46,6 +46,7 @@ void mtMemorySystem::deallocate(void* ptr) {
 
 static const char* mem_tag_str[] = {
     "GENERAL",
+    "STD_CONTAINERS",
     "RENDERING",
     "PHYSICS",
     "AUDIO",

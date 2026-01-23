@@ -27,7 +27,7 @@ struct _JobTask {
     }
 };
 
-_JobTask JobTaskFunc(std::queue<mtJob>& jobQueue) {
+_JobTask JobTaskFunc(mtQueue<mtJob>& jobQueue) {
     while (!jobQueue.empty()) {
         mtJob job = jobQueue.front();
         jobQueue.pop();

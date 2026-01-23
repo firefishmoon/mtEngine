@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <vulkan/vulkan.h>
+#include "render/vulkan/vulkan_context.h"
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -44,7 +45,6 @@ public:
     VkInstance getInstance() const { return _instance; }
     
 private:
-    b8 setupDebugMessenger();
     b8 pickPhysicalDevice();
     b8 isDeviceSuitable(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -100,4 +100,6 @@ private:
     b8 _framebufferResized = false;
     
     static const u32 MAX_FRAMES_IN_FLIGHT = 2;
+
+    mtVulkanContext _vulkanContext;
 };

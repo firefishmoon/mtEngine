@@ -1,9 +1,9 @@
 #pragma once
 
 #include <functional>
-#include <queue>
 #include "../defines.h"
 #include "../common/singleton.h"
+#include "core/std_wrapper.h"
 
 class MT_API mtJob {
 public:
@@ -30,6 +30,6 @@ public:
     void addJob(mtJob& job);
     void runJobs();
 private:
-    std::queue<mtJob> _jobQueue; 
+    mtQueue<mtJob> _jobQueue; 
     u32 _numThreads;
 };

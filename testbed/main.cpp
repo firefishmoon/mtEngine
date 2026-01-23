@@ -9,6 +9,7 @@
 #include "core/memorysystem.h"
 #include "core/eventsystem.h"
 #include "core/application.h"
+#include "core/std_wrapper.h"
 // #include <GLFW/glfw3.h>
 
 using namespace std;
@@ -86,9 +87,11 @@ void test_logger() {
     mtLoggerSystem::getInstance()->shutdown();
 }
 
+mtVector<int> test_vector;
 void test_memory() {
     std::cout << "test_memory" << std::endl;
     mtMemorySystem::getInstance()->reportMemoryUsage();
+    test_vector.reserve(100);
     void* ptr1 = mtMemorySystem::getInstance()->allocate(mtMemTag::GENERAL, 256);
     void* ptr2 = mtMemorySystem::getInstance()->allocate(mtMemTag::RENDERING, 512);
     mtMemorySystem::getInstance()->reportMemoryUsage();

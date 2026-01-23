@@ -22,6 +22,8 @@ add_library(mtengine SHARED
     ./core/jobsystem.cpp
     ./core/application.cpp
     ./render/vulkan/vulkan_backend.cpp
+    ./render/vulkan/vulkan_context.cpp
+    ./render/vulkan/vulkan_device.cpp
     ./render/rendersystem.cpp
 )
 
