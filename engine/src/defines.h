@@ -22,6 +22,7 @@ using s64 = long long;
 using f32 = float;
 using f64 = double;
 
+#define MT_CLAMP(value, min, max) ((value <= min) ? min : (value >= max) ? max : value)
 
 // #ifdef __cplusplus
 // extern "C" {          // 关闭 C++ 名字改编

@@ -27,6 +27,7 @@ public:
     ~mtVulkanBackend() override = default;
 
     b8 initialize() override;
+    b8 createSurface();
     b8 shutdown() override;
     
     b8 renderFrame() override;
@@ -45,24 +46,19 @@ public:
     VkInstance getInstance() const { return _instance; }
     
 private:
-    b8 pickPhysicalDevice();
-    b8 isDeviceSuitable(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    b8 createLogicalDevice();
-    b8 createSurface();
-    b8 createSwapChain();
+    // b8 pickPhysicalDevice();
+    // b8 isDeviceSuitable(VkPhysicalDevice device);
+    // QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    // b8 createLogicalDevice();
+    // b8 createSwapChain();
     b8 createImageViews();
     b8 createRenderPass();
     b8 createGraphicsPipeline();
     b8 createFramebuffers();
-    b8 createCommandPool();
+    // b8 createCommandPool();
     b8 createCommandBuffers();
     b8 createSyncObjects();
     
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     
     b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
     

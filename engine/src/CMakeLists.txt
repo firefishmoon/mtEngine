@@ -24,6 +24,7 @@ add_library(mtengine SHARED
     ./render/vulkan/vulkan_backend.cpp
     ./render/vulkan/vulkan_context.cpp
     ./render/vulkan/vulkan_device.cpp
+    ./render/vulkan/vulkan_swapchain.cpp
     ./render/rendersystem.cpp
 )
 
