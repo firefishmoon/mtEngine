@@ -28,7 +28,7 @@ public:
 
     void querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSupportInfo* outSupportInfo);
 
-    mtVulkanContext* getContext() const { return _context; }
+    mtVulkanContext* getContext() { return _context; }
 
     mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
 // private:

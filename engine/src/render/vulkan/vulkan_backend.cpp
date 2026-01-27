@@ -44,17 +44,19 @@ b8 mtVulkanBackend::initialize() {
     );
     _swapChain = _vulkanContext.getVulkanSwapChain()->getSwapChainContext()->_handler;
     mtVkSwapChainContext* swapchainCtx = _vulkanContext.getVulkanSwapChain()->getSwapChainContext();
-    u32 imageCount = swapchainCtx->_imageCount;
-    _swapChainImages.resize(imageCount);
-    if (imageCount > 0) vkGetSwapchainImagesKHR(_device, _swapChain, &imageCount, _swapChainImages.data());
+    // u32 imageCount = swapchainCtx->_imageCount;
+    // _swapChainImages.resize(imageCount);
+    // if (imageCount > 0) vkGetSwapchainImagesKHR(_device, _swapChain, &imageCount, _swapChainImages.data());
+    _pSwapChainImages = &swapchainCtx->_swapChainImages;
+    _pSwapChainImageViews = &swapchainCtx->_swapChainImageViews;
     _swapChainImageFormat = _vulkanContext.getVulkanSwapChain()->getSwapChainContext()->_imageFormat.format;
     _swapChainExtent = {800, 600};
     _commandPool = _vulkanContext.getVulkanDevice()->getDeviceContext()->_graphicsCommandPool;
     
-    if (!createImageViews()) {
-        MT_LOG_ERROR("Failed to create image views!");
-        return false;
-    }
+    // if (!createImageViews()) {
+    //     MT_LOG_ERROR("Failed to create image views!");
+    //     return false;
+    // }
     
     if (!createRenderPass()) {
         MT_LOG_ERROR("Failed to create render pass!");
@@ -95,7 +97,7 @@ b8 mtVulkanBackend::shutdown() {
     _renderFinishedSemaphores.clear();
     _imageAvailableSemaphores.clear();
 
-    _commandBuffers.clear();
+    // _commandBuffers.clear();
     _commandPool = VK_NULL_HANDLE;
 
     _swapChainFramebuffers.clear();
@@ -103,7 +105,7 @@ b8 mtVulkanBackend::shutdown() {
     _pipelineLayout = VK_NULL_HANDLE;
     _renderPass = VK_NULL_HANDLE;
 
-    _swapChainImageViews.clear();
+    // _swapChainImageViews.clear();
     _swapChain = VK_NULL_HANDLE;
 
     if (_device != VK_NULL_HANDLE) {
@@ -149,34 +151,6 @@ b8 mtVulkanBackend::createSurface() {
     return true;
 }
 
-
-b8 mtVulkanBackend::createImageViews() {
-    _swapChainImageViews.resize(_swapChainImages.size());
-    
-    for (size_t i = 0; i < _swapChainImages.size(); i++) {
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = _swapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = _swapChainImageFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-        
-        if (vkCreateImageView(_device, &createInfo, nullptr, &_swapChainImageViews[i]) != VK_SUCCESS) {
-            MT_LOG_ERROR("Failed to create image view");
-            return false;
-        }
-    }
-    
-    return true;
-}
 
 b8 mtVulkanBackend::createRenderPass() {
     VkAttachmentDescription colorAttachment{};
@@ -342,10 +316,10 @@ b8 mtVulkanBackend::createGraphicsPipeline() {
 }
 
 b8 mtVulkanBackend::createFramebuffers() {
-    _swapChainFramebuffers.resize(_swapChainImageViews.size());
+    _swapChainFramebuffers.resize(_pSwapChainImageViews->size());
 
-    for (size_t i = 0; i < _swapChainImageViews.size(); i++) {
-        VkImageView attachments[] = {_swapChainImageViews[i]};
+    for (size_t i = 0; i < _pSwapChainImageViews->size(); i++) {
+        VkImageView attachments[] = {(*_pSwapChainImageViews)[i]};
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -367,17 +341,23 @@ b8 mtVulkanBackend::createFramebuffers() {
 
 
 b8 mtVulkanBackend::createCommandBuffers() {
-    _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = _commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
-
-    if (vkAllocateCommandBuffers(_device, &allocInfo, _commandBuffers.data()) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to allocate command buffers");
-        return false;
+    // _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    //
+    // VkCommandBufferAllocateInfo allocInfo{};
+    // allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    // allocInfo.commandPool = _commandPool;
+    // allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    // allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+    //
+    // if (vkAllocateCommandBuffers(_device, &allocInfo, _commandBuffers.data()) != VK_SUCCESS) {
+    //     MT_LOG_ERROR("Failed to allocate command buffers");
+    //     return false;
+    // }
+    u32 imageCount = _vulkanContext.getVulkanSwapChain()->getSwapChainContext()->_imageCount;
+    auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
+    _pCommandBuffers->resize(imageCount);
+    for (auto& cmdBuffer : *_pCommandBuffers) {
+        cmdBuffer.initialize(&_vulkanContext, true); 
     }
 
     return true;
@@ -460,6 +440,10 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 b8 mtVulkanBackend::renderFrame() {
     vkWaitForFences(_device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
     
+    auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
+    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
+
+
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(_device, _swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
     
@@ -472,9 +456,9 @@ b8 mtVulkanBackend::renderFrame() {
     
     vkResetFences(_device, 1, &_inFlightFences[_currentFrame]);
 
-    vkResetCommandBuffer(_commandBuffers[_currentFrame], 0);
+    vkResetCommandBuffer(commandBuffer, 0);
 
-    if (!recordCommandBuffer(_commandBuffers[_currentFrame], imageIndex)) {
+    if (!recordCommandBuffer(commandBuffer, imageIndex)) {
         return false;
     }
     
@@ -487,7 +471,6 @@ b8 mtVulkanBackend::renderFrame() {
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    VkCommandBuffer commandBuffer = _commandBuffers[_currentFrame];
     submitInfo.pCommandBuffers = &commandBuffer;
     
     VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};

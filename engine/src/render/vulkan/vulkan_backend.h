@@ -5,6 +5,7 @@
 #include <string>
 #include <vulkan/vulkan.h>
 #include "render/vulkan/vulkan_context.h"
+#include "core/std_wrapper.h"
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -75,13 +76,13 @@ private:
     VkQueue _presentQueue = VK_NULL_HANDLE;
 
     VkCommandPool _commandPool = VK_NULL_HANDLE;
-    std::vector<VkCommandBuffer> _commandBuffers;
+    // std::vector<VkCommandBuffer> _commandBuffers;
 
     VkSwapchainKHR _swapChain = VK_NULL_HANDLE;
-    std::vector<VkImage> _swapChainImages;
+    mtVector<VkImage>* _pSwapChainImages;
     VkFormat _swapChainImageFormat;
     VkExtent2D _swapChainExtent;
-    std::vector<VkImageView> _swapChainImageViews;
+    mtVector<VkImageView>* _pSwapChainImageViews;
     std::vector<VkFramebuffer> _swapChainFramebuffers;
 
     VkRenderPass _renderPass = VK_NULL_HANDLE;

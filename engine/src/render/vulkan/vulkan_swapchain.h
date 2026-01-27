@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include <vulkan/vulkan.h>
+#include "core/std_wrapper.h"
 
 struct mtVkSwapChainContext {
     VkSurfaceFormatKHR _imageFormat;
@@ -11,6 +12,8 @@ struct mtVkSwapChainContext {
     b8 _supportsBlitSrc;
     // khandle swapchainColorTexture;
     u32 _imageIndex;
+    mtVector<VkImage> _swapChainImages;
+    mtVector<VkImageView> _swapChainImageViews;
 };
 
 struct mtVkSwapchainSupportInfo {
@@ -36,7 +39,7 @@ public:
 
     b8 recreate(u32 width, u32 height);
 
-    const mtVulkanContext* getContext() const { return _context; }
+    mtVulkanContext* getContext() { return _context; }
     mtVkSwapChainContext* getSwapChainContext() { return &_swapChainCtx; }
 private:
     mtVulkanContext* _context;

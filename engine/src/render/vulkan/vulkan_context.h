@@ -6,6 +6,8 @@
 #include "defines.h"
 #include "render/vulkan/vulkan_device.h"
 #include "render/vulkan/vulkan_swapchain.h"
+#include "render/vulkan/vulkan_command_buffer.h"
+#include "core/std_wrapper.h"
 
 struct mtVkContext {
     u32 _apiMajor;
@@ -32,8 +34,10 @@ public:
     mtVkContext* getVkContext() { return &_context; }
     mtVulkanDevice* getVulkanDevice() { return &_vulkanDevice; }
     mtVulkanSwapChain* getVulkanSwapChain() { return &_vulkanSwapChain; }
+    mtVector<mtVulkanCommandBuffer>* getVulkanCommandBuffers() { return &_commandBuffers; }
 private:
     mtVkContext _context;
     mtVulkanDevice _vulkanDevice;
     mtVulkanSwapChain _vulkanSwapChain;
+    mtVector<mtVulkanCommandBuffer> _commandBuffers;
 };
