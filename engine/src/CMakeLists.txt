@@ -26,6 +26,7 @@ add_library(mtengine SHARED
     ./render/vulkan/vulkan_device.cpp
     ./render/vulkan/vulkan_swapchain.cpp
     ./render/vulkan/vulkan_command_buffer.cpp
+    ./render/vulkan/vulkan_image.cpp
     ./render/rendersystem.cpp
 )
 

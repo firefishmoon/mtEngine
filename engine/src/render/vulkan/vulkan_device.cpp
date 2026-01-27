@@ -242,3 +242,19 @@ void mtVulkanDevice::querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSu
         outSupportInfo->_presentModes = nullptr;
     }
 }
+
+s32 mtVulkanDevice::findMemoryType(u32 typeFilter, u32 propertyFlags) {
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(_deviceContext._physicalDevice, &memoryProperties);
+
+    for (u32 i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+        if (typeFilter & (1 << i) &&
+            (memoryProperties.memoryTypes[i].propertyFlags & propertyFlags) == propertyFlags) {
+            return i;
+        }
+    }
+
+    MT_LOG_WARN("Unable to find suitable memory type!");
+    return -1;
+}
+

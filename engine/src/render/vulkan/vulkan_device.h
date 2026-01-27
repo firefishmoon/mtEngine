@@ -31,6 +31,8 @@ public:
     mtVulkanContext* getContext() { return _context; }
 
     mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
+
+    s32 findMemoryType(u32 typeFilter, u32 propertyFlags);
 // private:
     // b8 selectPhysicalDevice();
     // b8 isDeviceSuitable(VkPhysicalDevice device);
