@@ -3,18 +3,8 @@
 #include <vulkan/vulkan.h>
 #include "defines.h"
 
-struct mtVkImageContext {
-    VkImage _image;
-    VkDeviceMemory _memory;
-    VkImageView _imageView;
-    VkMemoryRequirements _memoryRequirments;
-    VkFormat _format;
-    u32 _width;
-    u32 _height;
-    u32 _mipLevels;
-};
 
-struct mtVulkanContext;
+class mtVulkanContext;
 
 class mtVulkanImage {
 public:
@@ -34,8 +24,16 @@ public:
     void free();
 
 
-    mtVkImageContext* getImageContext() { return &_imageContext; }
+    // mtVkImageContext* getImageContext() { return &_imageContext; }
 private:
-    struct mtVulkanContext* _pVulkanContext;
-    mtVkImageContext _imageContext;
+    mtVulkanContext* _pVulkanContext;
+    // mtVkImageContext _imageContext;
+    VkImage _image;
+    VkDeviceMemory _memory;
+    VkImageView _imageView;
+    VkMemoryRequirements _memoryRequirments;
+    VkFormat _format;
+    u32 _width;
+    u32 _height;
+    u32 _mipLevels;
 };

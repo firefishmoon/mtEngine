@@ -60,8 +60,12 @@ static void key_callback(GLFWwindow *win, int key, int sc, int act, int mods) {
 }
 
 static void window_size_callback(GLFWwindow* window, int width, int height) {
-    MT_LOG_DEBUG("Window resized: width={}, height={}", width, height);
-    mtEventSystem::getInstance()->emitEvent({mtEventType::WINDOW_RESIZE, static_cast<u32>(width), static_cast<u32>(height)});
+    MT_LOG_INFO("Window resized: width={}, height={}", width, height);
+    mtEventSystem::getInstance()->emitEvent({
+        mtEventType::WINDOW_RESIZE, 
+        static_cast<u16>(width), 
+        static_cast<u16>(height)
+    });
 }
 
 void mtApplication::run() {

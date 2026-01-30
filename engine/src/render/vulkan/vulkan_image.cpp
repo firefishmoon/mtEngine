@@ -6,7 +6,6 @@
 
 mtVulkanImage::mtVulkanImage()
     : _pVulkanContext(nullptr) {
-    _imageContext = {};
 }
 
 mtVulkanImage::~mtVulkanImage() {
@@ -44,35 +43,35 @@ b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkDevice device = _pVulkanContext->getVulkanDevice()->getDeviceContext()->_logicDevice;
+    VkDevice device = _pVulkanContext->getVulkanDevice()->_logicDevice;
 
-    if (vkCreateImage(device, &imageInfo, nullptr, &_imageContext._image) != VK_SUCCESS) {
+    if (vkCreateImage(device, &imageInfo, nullptr, &_image) != VK_SUCCESS) {
         return false;
     }
 
     // Allocate memory
-    vkGetImageMemoryRequirements(device, _imageContext._image, &_imageContext._memoryRequirments);
+    vkGetImageMemoryRequirements(device, _image, &_memoryRequirments);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = _imageContext._memoryRequirments.size;
-    allocInfo.memoryTypeIndex = _pVulkanContext->getVulkanDevice()->findMemoryType(_imageContext._memoryRequirments.memoryTypeBits, properties);
+    allocInfo.allocationSize = _memoryRequirments.size;
+    allocInfo.memoryTypeIndex = _pVulkanContext->getVulkanDevice()->findMemoryType(_memoryRequirments.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(_pVulkanContext->getVulkanDevice()->getDeviceContext()->_logicDevice, &allocInfo, nullptr, &_imageContext._memory) != VK_SUCCESS) {
+    if (vkAllocateMemory(_pVulkanContext->getVulkanDevice()->_logicDevice, &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
         return false;
     }
 
-    vkBindImageMemory(device, _imageContext._image, _imageContext._memory, 0);
+    vkBindImageMemory(device, _image, _memory, 0);
 
-    _imageContext._format = format;
-    _imageContext._width = width;
-    _imageContext._height = height;
+    _format = format;
+    _width = width;
+    _height = height;
 
     // Create image view if requested
     if (createView) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = _imageContext._image;
+        viewInfo.image = _image;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -81,7 +80,7 @@ b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(device, &viewInfo, nullptr, &_imageContext._imageView) != VK_SUCCESS) {
+        if (vkCreateImageView(device, &viewInfo, nullptr, &_imageView) != VK_SUCCESS) {
             return false;
         }
     }
@@ -89,17 +88,17 @@ b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
 }
 
 void mtVulkanImage::free() {
-    VkDevice device = _pVulkanContext->getVulkanDevice()->getDeviceContext()->_logicDevice;
-    if (_imageContext._imageView) {
-        vkDestroyImageView(device, _imageContext._imageView, 0);
-        _imageContext._imageView = 0;
+    VkDevice device = _pVulkanContext->getVulkanDevice()->_logicDevice;
+    if (_imageView) {
+        vkDestroyImageView(device, _imageView, 0);
+        _imageView = 0;
     }
-    if (_imageContext._memory) {
-        vkFreeMemory(device, _imageContext._memory, 0);
-        _imageContext._memory = 0;
+    if (_memory) {
+        vkFreeMemory(device, _memory, 0);
+        _memory = 0;
     }
-    if (_imageContext._image) {
-        vkDestroyImage(device, _imageContext._image, 0);
-        _imageContext._image = 0;
+    if (_image) {
+        vkDestroyImage(device, _image, 0);
+        _image = 0;
     }
 }

@@ -5,18 +5,18 @@
 
 class mtVulkanContext;
 
-struct mtVkDeviceContext {
-    VkPhysicalDevice _physicalDevice;
-    VkDevice _logicDevice;
-    VkQueue _graphicsQueue;
-    VkQueue _presentQueue;
-    VkQueue _transferQueue;
-    VkCommandPool _graphicsCommandPool;
-
-    u32 _graphicsFamilyIndex = -1;
-    u32 _presentFamilyIndex = -1;
-    u32 _transferFamilyIndex = -1;
-};
+// struct mtVkDeviceContext {
+//     VkPhysicalDevice _physicalDevice;
+//     VkDevice _logicDevice;
+//     VkQueue _graphicsQueue;
+//     VkQueue _presentQueue;
+//     VkQueue _transferQueue;
+//     VkCommandPool _graphicsCommandPool;
+//
+//     u32 _graphicsFamilyIndex = -1;
+//     u32 _presentFamilyIndex = -1;
+//     u32 _transferFamilyIndex = -1;
+// };
 
 struct mtVkSwapchainSupportInfo;
 
@@ -30,13 +30,31 @@ public:
 
     mtVulkanContext* getContext() { return _context; }
 
-    mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
+    // mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
 
     s32 findMemoryType(u32 typeFilter, u32 propertyFlags);
-// private:
-    // b8 selectPhysicalDevice();
-    // b8 isDeviceSuitable(VkPhysicalDevice device);
 private:
-    mtVkDeviceContext _deviceContext;
+    b8 selectPhysicalDevice();
+    // b8 isDeviceSuitable(VkPhysicalDevice device);
+protected:
+    friend class mtVulkanContext;
+    friend class mtVulkanSwapChain;
+    friend class mtVulkanCommandBuffer;
+    friend class mtVulkanImage;
+    friend class mtVulkanBackend;
+    // mtVkDeviceContext _deviceContext;
     mtVulkanContext* _context;
+
+    // Device context
+
+    VkPhysicalDevice _physicalDevice;
+    VkDevice _logicDevice;
+    VkQueue _graphicsQueue;
+    VkQueue _presentQueue;
+    VkQueue _transferQueue;
+    VkCommandPool _graphicsCommandPool;
+
+    u32 _graphicsFamilyIndex = -1;
+    u32 _presentFamilyIndex = -1;
+    u32 _transferFamilyIndex = -1;
 };

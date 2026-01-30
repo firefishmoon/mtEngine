@@ -4,17 +4,9 @@
 #include <vulkan/vulkan.h>
 #include "core/std_wrapper.h"
 
-struct mtVkSwapChainContext {
-    VkSurfaceFormatKHR _imageFormat;
-    VkSwapchainKHR _handler;
-    u32 _imageCount;
-    b8 _supportsBlitDest;
-    b8 _supportsBlitSrc;
-    // khandle swapchainColorTexture;
-    u32 _imageIndex;
-    mtVector<VkImage> _swapChainImages;
-    mtVector<VkImageView> _swapChainImageViews;
-};
+// struct mtVkSwapChainContext {
+//     
+// };
 
 struct mtVkSwapchainSupportInfo {
     /** @brief The surface capabilities. */
@@ -40,9 +32,23 @@ public:
     b8 recreate(u32 width, u32 height);
 
     mtVulkanContext* getContext() { return _context; }
-    mtVkSwapChainContext* getSwapChainContext() { return &_swapChainCtx; }
-private:
+    // mtVkSwapChainContext* getSwapChainContext() { return &_swapChainCtx; }
+protected:
+    friend class mtVulkanBackend;
+    friend class mtVulkanContext;
+
     mtVulkanContext* _context;
-    mtVkSwapChainContext _swapChainCtx;
+
+    // mtVkSwapChainContext _swapChainCtx;
     mtVkSwapchainSupportInfo _swapChainSupport;
+
+    VkSurfaceFormatKHR _imageFormat;
+    VkSwapchainKHR _handler;
+    u32 _imageCount;
+    b8 _supportsBlitDest;
+    b8 _supportsBlitSrc;
+    // khandle swapchainColorTexture;
+    u32 _imageIndex;
+    mtVector<VkImage> _swapChainImages;
+    mtVector<VkImageView> _swapChainImageViews;
 };

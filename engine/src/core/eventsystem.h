@@ -25,15 +25,15 @@ struct mtEvent {
         u32 data;
         f32 fdata;
         struct {
-            u32 width;
-            u32 height;
+            u16 width;
+            u16 height;
         } resize;
     };
 
     mtEvent() : type(mtEventType::NONE), data(0) {}
     mtEvent(mtEventType t, u32 d) : type(t), data(d) {}
     mtEvent(mtEventType t, f32 fd) : type(t), fdata(fd) {}
-    mtEvent(mtEventType t, u32 w, u32 h) : type(t), resize{w, h} {}
+    mtEvent(mtEventType t, u16 w, u16 h) : type(t), resize{w, h} {}
 };
 
 typedef std::function<void(mtEvent)> mtEventHandler;

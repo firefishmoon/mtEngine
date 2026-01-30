@@ -76,36 +76,36 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, vulkan_physical_device_queue
     return false;
 }
 
-static b8 selectPhysicalDevice(mtVulkanDevice* mtDevice) {
+b8 mtVulkanDevice::selectPhysicalDevice() {
     u32 deviceCount = 0;
-    VkInstance instance = mtDevice->getContext()->getVkContext()->_instance;
+    VkInstance instance = _context->_instance;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
         MT_LOG_FATAL("Failed to find GPUs with Vulkan support!");
         return false;
     }
-    mtVkDeviceContext* pDeviceCtx = mtDevice->getDeviceContext();
+    // mtVkDeviceContext* pDeviceCtx = mtDevice->getDeviceContext();
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
     vulkan_physical_device_queue_family_info queueFamilyInfo = {-1, -1, -1, -1};
     for (const auto& device : devices) {
         if (isDeviceSuitable(device, &queueFamilyInfo)) {
-            pDeviceCtx->_physicalDevice = device;
+            _physicalDevice = device;
             break;
         }
     }
-    if (pDeviceCtx->_physicalDevice == VK_NULL_HANDLE) {
+    if (_physicalDevice == VK_NULL_HANDLE) {
         MT_LOG_FATAL("Failed to find a suitable GPU!");
         return false;
     }
 
-    pDeviceCtx->_graphicsFamilyIndex = queueFamilyInfo.graphics_family_index;
-    pDeviceCtx->_presentFamilyIndex = queueFamilyInfo.present_family_index;
-    pDeviceCtx->_transferFamilyIndex = queueFamilyInfo.transfer_family_index;
+    _graphicsFamilyIndex = queueFamilyInfo.graphics_family_index;
+    _presentFamilyIndex = queueFamilyInfo.present_family_index;
+    _transferFamilyIndex = queueFamilyInfo.transfer_family_index;
 
     VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(pDeviceCtx->_physicalDevice, &deviceProperties);
+    vkGetPhysicalDeviceProperties(_physicalDevice, &deviceProperties);
     MT_LOG_INFO("Selected GPU: {}", deviceProperties.deviceName);
 
     mtVector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -133,7 +133,7 @@ static b8 selectPhysicalDevice(mtVulkanDevice* mtDevice) {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (mtDevice->getContext()->getVkContext()->_enableDebug) {
+    if (_context->_enableDebug) {
         mtVector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -141,26 +141,26 @@ static b8 selectPhysicalDevice(mtVulkanDevice* mtDevice) {
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateDevice(pDeviceCtx->_physicalDevice, 
+    if (vkCreateDevice(_physicalDevice, 
                        &createInfo, 
                        nullptr, 
-                       &pDeviceCtx->_logicDevice) != VK_SUCCESS) {
+                       &_logicDevice) != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create logical device!");
         return false;
     }
     
-    vkGetDeviceQueue(pDeviceCtx->_logicDevice, 
+    vkGetDeviceQueue(_logicDevice, 
                      queueFamilyInfo.graphics_family_index, 
                      0, 
-                     &pDeviceCtx->_graphicsQueue);
-    vkGetDeviceQueue(pDeviceCtx->_logicDevice, 
+                     &_graphicsQueue);
+    vkGetDeviceQueue(_logicDevice, 
                      queueFamilyInfo.present_family_index, 
                      0, 
-                     &pDeviceCtx->_presentQueue); 
-    vkGetDeviceQueue(pDeviceCtx->_logicDevice, 
+                     &_presentQueue); 
+    vkGetDeviceQueue(_logicDevice, 
                      queueFamilyInfo.transfer_family_index, 
                      0, 
-                     &pDeviceCtx->_transferQueue);
+                     &_transferQueue);
 
     MT_LOG_INFO("Logical device and queues created successfully.");
 
@@ -169,7 +169,7 @@ static b8 selectPhysicalDevice(mtVulkanDevice* mtDevice) {
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     
-    if (vkCreateCommandPool(pDeviceCtx->_logicDevice, &poolInfo, nullptr, &pDeviceCtx->_graphicsCommandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(_logicDevice, &poolInfo, nullptr, &_graphicsCommandPool) != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create command pool");
         return false;
     }
@@ -180,11 +180,11 @@ static b8 selectPhysicalDevice(mtVulkanDevice* mtDevice) {
 
 b8 mtVulkanDevice::initialize(mtVulkanContext* context) {
     _context = context;
-    mtVkDeviceContext* pDeviceCtx = getDeviceContext();
-    pDeviceCtx->_logicDevice = VK_NULL_HANDLE;
-    pDeviceCtx->_physicalDevice = VK_NULL_HANDLE;
+    // mtVkDeviceContext* pDeviceCtx = getDeviceContext();
+    _logicDevice = VK_NULL_HANDLE;
+    _physicalDevice = VK_NULL_HANDLE;
 
-    if (!selectPhysicalDevice(this)) {
+    if (!selectPhysicalDevice()) {
         MT_LOG_FATAL("Failed to select physical device!");
         return false;
     }
@@ -195,49 +195,49 @@ b8 mtVulkanDevice::initialize(mtVulkanContext* context) {
 
 b8 mtVulkanDevice::shutdown() {
 
-    mtVkDeviceContext* pDeviceCtx = getDeviceContext();
-    pDeviceCtx->_physicalDevice = VK_NULL_HANDLE;
-    pDeviceCtx->_graphicsQueue = VK_NULL_HANDLE;
-    pDeviceCtx->_presentQueue = VK_NULL_HANDLE;
-    pDeviceCtx->_transferQueue = VK_NULL_HANDLE;
+    // mtVkDeviceContext* pDeviceCtx = getDeviceContext();
+    _physicalDevice = VK_NULL_HANDLE;
+    _graphicsQueue = VK_NULL_HANDLE;
+    _presentQueue = VK_NULL_HANDLE;
+    _transferQueue = VK_NULL_HANDLE;
 
     MT_LOG_INFO("Destroying command pool...");
-    vkDestroyCommandPool(pDeviceCtx->_logicDevice, pDeviceCtx->_graphicsCommandPool, nullptr);
-    pDeviceCtx->_graphicsCommandPool = VK_NULL_HANDLE;
+    vkDestroyCommandPool(_logicDevice, _graphicsCommandPool, nullptr);
+    _graphicsCommandPool = VK_NULL_HANDLE;
 
     MT_LOG_INFO("Destroying logical device...");
-    if (pDeviceCtx->_logicDevice != VK_NULL_HANDLE) {
-        vkDestroyDevice(pDeviceCtx->_logicDevice, nullptr);
-        pDeviceCtx->_logicDevice = VK_NULL_HANDLE;
+    if (_logicDevice != VK_NULL_HANDLE) {
+        vkDestroyDevice(_logicDevice, nullptr);
+        _logicDevice = VK_NULL_HANDLE;
     }
 
-    pDeviceCtx->_graphicsFamilyIndex = -1;
-    pDeviceCtx->_presentFamilyIndex = -1;
-    pDeviceCtx->_transferFamilyIndex = -1;
+    _graphicsFamilyIndex = -1;
+    _presentFamilyIndex = -1;
+    _transferFamilyIndex = -1;
 
     return true;
 }
 
 void mtVulkanDevice::querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSupportInfo* outSupportInfo) {
-    mtVkDeviceContext* pDeviceCtx = getDeviceContext();
+    // mtVkDeviceContext* pDeviceCtx = getDeviceContext();
 
     // Capabilities
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pDeviceCtx->_physicalDevice, surface, &outSupportInfo->_capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_physicalDevice, surface, &outSupportInfo->_capabilities);
 
     // Formats
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pDeviceCtx->_physicalDevice, surface, &outSupportInfo->_formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, surface, &outSupportInfo->_formatCount, nullptr);
     if (outSupportInfo->_formatCount != 0) {
         outSupportInfo->_formats = (VkSurfaceFormatKHR*)MT_ALLOCATE(mtMemTag::RENDERING, sizeof(VkSurfaceFormatKHR) * outSupportInfo->_formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(pDeviceCtx->_physicalDevice, surface, &outSupportInfo->_formatCount, outSupportInfo->_formats);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, surface, &outSupportInfo->_formatCount, outSupportInfo->_formats);
     } else {
         outSupportInfo->_formats = nullptr;
     }
 
     // Present Modes
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pDeviceCtx->_physicalDevice, surface, &outSupportInfo->_presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice, surface, &outSupportInfo->_presentModeCount, nullptr);
     if (outSupportInfo->_presentModeCount != 0) {
         outSupportInfo->_presentModes = (VkPresentModeKHR*)MT_ALLOCATE(mtMemTag::RENDERING, sizeof(VkPresentModeKHR) * outSupportInfo->_presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(pDeviceCtx->_physicalDevice, surface, &outSupportInfo->_presentModeCount, outSupportInfo->_presentModes);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice, surface, &outSupportInfo->_presentModeCount, outSupportInfo->_presentModes);
     } else {
         outSupportInfo->_presentModes = nullptr;
     }
@@ -245,7 +245,7 @@ void mtVulkanDevice::querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSu
 
 s32 mtVulkanDevice::findMemoryType(u32 typeFilter, u32 propertyFlags) {
     VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(_deviceContext._physicalDevice, &memoryProperties);
+    vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &memoryProperties);
 
     for (u32 i = 0; i < memoryProperties.memoryTypeCount; ++i) {
         if (typeFilter & (1 << i) &&

@@ -34,17 +34,19 @@ public:
     b8 renderFrame() override;
     b8 onResize(u32 width, u32 height) override {
         _framebufferResized = true;
+        _vulkanContext._width = width;
+        _vulkanContext._height = height;
         return true;
     }
     b8 recreateSwapChain();
     b8 waitDeviceIdle();
     
-    VkDevice getDevice() const { return _device; }
-    VkPhysicalDevice getPhysicalDevice() const { return _physicalDevice; }
-    VkQueue getGraphicsQueue() const { return _graphicsQueue; }
-    VkQueue getPresentQueue() const { return _presentQueue; }
-    VkSurfaceKHR getSurface() const { return _surface; }
-    VkInstance getInstance() const { return _instance; }
+    // VkDevice getDevice() const { return _device; }
+    // VkPhysicalDevice getPhysicalDevice() const { return _physicalDevice; }
+    // VkQueue getGraphicsQueue() const { return _graphicsQueue; }
+    // VkQueue getPresentQueue() const { return _presentQueue; }
+    // VkSurfaceKHR getSurface() const { return _surface; }
+    // VkInstance getInstance() const { return _instance; }
     
 private:
     // b8 pickPhysicalDevice();
@@ -67,22 +69,22 @@ private:
     std::vector<char> readFile(const std::string& filename);
     VkShaderModule createShaderModule(const std::vector<char>& code);
 
-    VkInstance _instance = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
-    VkDevice _device = VK_NULL_HANDLE;
-    VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
-    VkQueue _graphicsQueue = VK_NULL_HANDLE;
-    VkSurfaceKHR _surface = VK_NULL_HANDLE;
-    VkQueue _presentQueue = VK_NULL_HANDLE;
+    // VkInstance _instance = VK_NULL_HANDLE;
+    // VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
+    // VkDevice _device = VK_NULL_HANDLE;
+    // VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
+    // VkQueue _graphicsQueue = VK_NULL_HANDLE;
+    // VkSurfaceKHR _surface = VK_NULL_HANDLE;
+    // VkQueue _presentQueue = VK_NULL_HANDLE;
 
-    VkCommandPool _commandPool = VK_NULL_HANDLE;
+    // VkCommandPool _commandPool = VK_NULL_HANDLE;
     // std::vector<VkCommandBuffer> _commandBuffers;
 
-    VkSwapchainKHR _swapChain = VK_NULL_HANDLE;
-    mtVector<VkImage>* _pSwapChainImages;
-    VkFormat _swapChainImageFormat;
-    VkExtent2D _swapChainExtent;
-    mtVector<VkImageView>* _pSwapChainImageViews;
+    // VkSwapchainKHR _swapChain = VK_NULL_HANDLE;
+    // mtVector<VkImage>* _pSwapChainImages;
+    // VkFormat _swapChainImageFormat;
+    // VkExtent2D _swapChainExtent;
+    // mtVector<VkImageView>* _pSwapChainImageViews;
     std::vector<VkFramebuffer> _swapChainFramebuffers;
 
     VkRenderPass _renderPass = VK_NULL_HANDLE;

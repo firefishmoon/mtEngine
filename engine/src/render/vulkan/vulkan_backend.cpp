@@ -27,31 +27,33 @@ b8 mtVulkanBackend::initialize() {
         MT_LOG_ERROR("Failed to initialize Vulkan context!");
         return false;
     }
-    _instance = _vulkanContext.getVkContext()->_instance;
-    _device = _vulkanContext.getVulkanDevice()->getDeviceContext()->_logicDevice;
-    _physicalDevice = _vulkanContext.getVulkanDevice()->getDeviceContext()->_physicalDevice;
-    _graphicsQueue = _vulkanContext.getVulkanDevice()->getDeviceContext()->_graphicsQueue;
-    _presentQueue = _vulkanContext.getVulkanDevice()->getDeviceContext()->_presentQueue;
+    // _instance = _vulkanContext._instance;
+    // _device = _vulkanContext.getVulkanDevice()->_logicDevice;
+    // _physicalDevice = _vulkanContext.getVulkanDevice()->_physicalDevice;
+    // _graphicsQueue = _vulkanContext.getVulkanDevice()->_graphicsQueue;
+    // _presentQueue = _vulkanContext.getVulkanDevice()->_presentQueue;
 
     if (!createSurface()) {
         MT_LOG_ERROR("Failed to create surface!");
        return false;
     }
 
+    _vulkanContext._width = 800;
+    _vulkanContext._height = 600;
     _vulkanContext.getVulkanSwapChain()->initialize(&_vulkanContext, 
         800, 
         600
     );
-    _swapChain = _vulkanContext.getVulkanSwapChain()->getSwapChainContext()->_handler;
-    mtVkSwapChainContext* swapchainCtx = _vulkanContext.getVulkanSwapChain()->getSwapChainContext();
+    // _swapChain = _vulkanContext.getVulkanSwapChain()->_handler;
+    // mtVkSwapChainContext* swapchainCtx = _vulkanContext.getVulkanSwapChain()->getSwapChainContext();
     // u32 imageCount = swapchainCtx->_imageCount;
     // _swapChainImages.resize(imageCount);
     // if (imageCount > 0) vkGetSwapchainImagesKHR(_device, _swapChain, &imageCount, _swapChainImages.data());
-    _pSwapChainImages = &swapchainCtx->_swapChainImages;
-    _pSwapChainImageViews = &swapchainCtx->_swapChainImageViews;
-    _swapChainImageFormat = _vulkanContext.getVulkanSwapChain()->getSwapChainContext()->_imageFormat.format;
-    _swapChainExtent = {800, 600};
-    _commandPool = _vulkanContext.getVulkanDevice()->getDeviceContext()->_graphicsCommandPool;
+    // _pSwapChainImages = &_vulkanContext.getVulkanSwapChain()->_swapChainImages;
+    // _pSwapChainImageViews = &_vulkanContext.getVulkanSwapChain()->_swapChainImageViews;
+    // _swapChainImageFormat = _vulkanContext.getVulkanSwapChain()->_imageFormat.format;
+    // _swapChainExtent = {800, 600};
+    // _commandPool = _vulkanContext.getVulkanDevice()->_graphicsCommandPool;
     
     // if (!createImageViews()) {
     //     MT_LOG_ERROR("Failed to create image views!");
@@ -89,34 +91,34 @@ b8 mtVulkanBackend::initialize() {
 }
 
 b8 mtVulkanBackend::shutdown() {
-    if (_device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(_device);
-    }
+    // if (_device != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
+    // }
 
     _inFlightFences.clear();
     _renderFinishedSemaphores.clear();
     _imageAvailableSemaphores.clear();
 
     // _commandBuffers.clear();
-    _commandPool = VK_NULL_HANDLE;
+    // _commandPool = VK_NULL_HANDLE;
 
-    _swapChainFramebuffers.clear();
+    // _swapChainFramebuffers.clear();
     _graphicsPipeline = VK_NULL_HANDLE;
     _pipelineLayout = VK_NULL_HANDLE;
     _renderPass = VK_NULL_HANDLE;
 
     // _swapChainImageViews.clear();
-    _swapChain = VK_NULL_HANDLE;
+    // _swapChain = VK_NULL_HANDLE;
 
-    if (_device != VK_NULL_HANDLE) {
-        vkDestroyDevice(_device, nullptr);
-        _device = VK_NULL_HANDLE;
-    }
+    // if (_device != VK_NULL_HANDLE) {
+        // vkDestroyDevice(_device, nullptr);
+        // _device = VK_NULL_HANDLE;
+    // }
 
-    if (_surface != VK_NULL_HANDLE) {
-        vkDestroySurfaceKHR(_instance, _surface, nullptr);
-        _surface = VK_NULL_HANDLE;
-    }
+    // if (_surface != VK_NULL_HANDLE) {
+        // vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        // _surface = VK_NULL_HANDLE;
+    // }
     
     return true;
 }
@@ -143,18 +145,18 @@ b8 mtVulkanBackend::createSurface() {
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     createInfo.hwnd = data.hwnd;
     createInfo.hinstance = data.hInstance;
-    if (vkCreateWin32SurfaceKHR(_instance, &createInfo, nullptr, &_vulkanContext.getVkContext()->_surface) != VK_SUCCESS) {
+    if (vkCreateWin32SurfaceKHR(_vulkanContext._instance, &createInfo, nullptr, &_vulkanContext._surface) != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create window surface!");
         return false;
     }
-    _surface = _vulkanContext.getVkContext()->_surface;
+    // _surface = _vulkanContext._surface;
     return true;
 }
 
 
 b8 mtVulkanBackend::createRenderPass() {
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = _swapChainImageFormat;
+    colorAttachment.format = _vulkanContext._vulkanSwapChain._imageFormat.format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -189,7 +191,8 @@ b8 mtVulkanBackend::createRenderPass() {
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(_device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
+    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
+    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create render pass");
         return false;
     }
@@ -231,14 +234,14 @@ b8 mtVulkanBackend::createGraphicsPipeline() {
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float)_swapChainExtent.width;
-    viewport.height = (float)_swapChainExtent.height;
+    viewport.width = (float)_vulkanContext._width;
+    viewport.height = (float)_vulkanContext._height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = _swapChainExtent;
+    scissor.extent = {_vulkanContext._width, _vulkanContext._height};
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -282,7 +285,8 @@ b8 mtVulkanBackend::createGraphicsPipeline() {
     pipelineLayoutInfo.setLayoutCount = 0;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-    if (vkCreatePipelineLayout(_device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
+    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create pipeline layout");
         return false;
     }
@@ -291,6 +295,8 @@ b8 mtVulkanBackend::createGraphicsPipeline() {
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages;
+    // pipelineInfo.stageCount = 0;
+    // pipelineInfo.pStages = 0;
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
@@ -303,34 +309,34 @@ b8 mtVulkanBackend::createGraphicsPipeline() {
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (vkCreateGraphicsPipelines(_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create graphics pipeline");
         return false;
     }
 
     // destroy shader modules after pipeline creation
-    vkDestroyShaderModule(_device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(_device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(device, vertShaderModule, nullptr);
 
     return true;
 }
 
 b8 mtVulkanBackend::createFramebuffers() {
-    _swapChainFramebuffers.resize(_pSwapChainImageViews->size());
+    _swapChainFramebuffers.resize(_vulkanContext._vulkanSwapChain._swapChainImageViews.size());
 
-    for (size_t i = 0; i < _pSwapChainImageViews->size(); i++) {
-        VkImageView attachments[] = {(*_pSwapChainImageViews)[i]};
+    for (size_t i = 0; i < _vulkanContext._vulkanSwapChain._swapChainImageViews.size(); i++) {
+        VkImageView attachments[] = {_vulkanContext._vulkanSwapChain._swapChainImageViews[i]};
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = _renderPass;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = attachments;
-        framebufferInfo.width = _swapChainExtent.width;
-        framebufferInfo.height = _swapChainExtent.height;
+        framebufferInfo.width = _vulkanContext._width;
+        framebufferInfo.height = _vulkanContext._height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(_device, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(_vulkanContext._vulkanDevice._logicDevice, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
             MT_LOG_ERROR("Failed to create framebuffer");
             return false;
         }
@@ -353,7 +359,7 @@ b8 mtVulkanBackend::createCommandBuffers() {
     //     MT_LOG_ERROR("Failed to allocate command buffers");
     //     return false;
     // }
-    u32 imageCount = _vulkanContext.getVulkanSwapChain()->getSwapChainContext()->_imageCount;
+    u32 imageCount = _vulkanContext.getVulkanSwapChain()->_imageCount;
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
     _pCommandBuffers->resize(imageCount);
     for (auto& cmdBuffer : *_pCommandBuffers) {
@@ -374,10 +380,11 @@ b8 mtVulkanBackend::createSyncObjects() {
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        if (vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(_device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS) {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS) {
             MT_LOG_ERROR("Failed to create sync objects");
             return false;
         }
@@ -401,9 +408,9 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
     renderPassInfo.renderPass = _renderPass;
     renderPassInfo.framebuffer = _swapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = _swapChainExtent;
+    renderPassInfo.renderArea.extent = {_vulkanContext._width, _vulkanContext._height};
 
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    VkClearValue clearColor = {{{0.0f, 0.0f, 1.0f, 1.0f}}};
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
@@ -414,15 +421,15 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float)_swapChainExtent.width;
-    viewport.height = (float)_swapChainExtent.height;
+    viewport.width = (float)_vulkanContext._width;
+    viewport.height = (float)_vulkanContext._height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = _swapChainExtent;
+    scissor.extent = {_vulkanContext._width, _vulkanContext._height};
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -438,14 +445,17 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 }
 
 b8 mtVulkanBackend::renderFrame() {
-    vkWaitForFences(_device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
+    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
+    VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
+
+    vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
     
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
     VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
 
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(_device, _swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return recreateSwapChain();
@@ -454,7 +464,7 @@ b8 mtVulkanBackend::renderFrame() {
         return false;
     }
     
-    vkResetFences(_device, 1, &_inFlightFences[_currentFrame]);
+    vkResetFences(device, 1, &_inFlightFences[_currentFrame]);
 
     vkResetCommandBuffer(commandBuffer, 0);
 
@@ -477,7 +487,7 @@ b8 mtVulkanBackend::renderFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
     
-    if (vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to submit draw command buffer!");
         return false;
     }
@@ -487,12 +497,12 @@ b8 mtVulkanBackend::renderFrame() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
     
-    VkSwapchainKHR swapChains[] = {_swapChain};
+    VkSwapchainKHR swapChains[] = {swapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     
-    result = vkQueuePresentKHR(_presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(_vulkanContext._vulkanDevice._presentQueue, &presentInfo);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _framebufferResized) {
         _framebufferResized = false;
@@ -508,28 +518,22 @@ b8 mtVulkanBackend::renderFrame() {
 }
 
 b8 mtVulkanBackend::recreateSwapChain() {
-    vkDeviceWaitIdle(_device);
+    vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
+
+    if (!_vulkanContext.getVulkanSwapChain()->recreate(_vulkanContext._width, _vulkanContext._height)) {
+        MT_LOG_ERROR("VulkanBackend recreateSwapChain fail.");
+        return false;
+    }
     
-    // _swapChainFramebuffers.clear();
-    // _swapChainImageViews.clear();
+    createFramebuffers();
     
-    // if (!createSwapChain()) {
-    //     return false;
-    // }
-    
-    // if (!createImageViews()) {
-    //     return false;
-    // }
-    // 
-    // if (!createFramebuffers()) {
-    //     return false;
-    // }
-    
+    _framebufferResized = false;
+    MT_LOG_INFO("VulkanBackend recreateSwapChain success.");
     return true;
 }
 
 b8 mtVulkanBackend::waitDeviceIdle() {
-    vkDeviceWaitIdle(_device);
+    vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
     return true;
 }
 
@@ -558,7 +562,7 @@ VkShaderModule mtVulkanBackend::createShaderModule(const std::vector<char>& code
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+    if (vkCreateShaderModule(_vulkanContext._vulkanDevice._logicDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create shader module");
         return VK_NULL_HANDLE;
     }

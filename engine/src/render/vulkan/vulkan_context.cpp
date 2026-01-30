@@ -12,11 +12,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
 }
 
 mtVulkanContext::mtVulkanContext() {
-    _context._apiMajor = 0;
-    _context._apiMinor = 0;
-    _context._apiPatch = 0;
-    _context._enableDebug = true;
-    _context._instance = VK_NULL_HANDLE;
+    _apiMajor = 0;
+    _apiMinor = 0;
+    _apiPatch = 0;
+    _enableDebug = true;
+    _instance = VK_NULL_HANDLE;
 }
 
 mtVulkanContext::~mtVulkanContext() {
@@ -26,11 +26,11 @@ mtVulkanContext::~mtVulkanContext() {
 b8 mtVulkanContext::initialize() {
     u32 apiVersion = 0;
     vkEnumerateInstanceVersion(&apiVersion);
-    _context._apiMajor = VK_VERSION_MAJOR(apiVersion);
-    _context._apiMinor = VK_VERSION_MINOR(apiVersion);
-    _context._apiPatch = VK_VERSION_PATCH(apiVersion);
+    _apiMajor = VK_VERSION_MAJOR(apiVersion);
+    _apiMinor = VK_VERSION_MINOR(apiVersion);
+    _apiPatch = VK_VERSION_PATCH(apiVersion);
 
-    MT_LOG_INFO("Vulkan API Version: {}.{}.{}", _context._apiMajor, _context._apiMinor, _context._apiPatch);
+    MT_LOG_INFO("Vulkan API Version: {}.{}.{}", _apiMajor, _apiMinor, _apiPatch);
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -45,7 +45,7 @@ b8 mtVulkanContext::initialize() {
     createInfo.pApplicationInfo = &appInfo;
 
     mtVector<const char*> requiredExtensions; 
-    if (_context._enableDebug) {
+    if (_enableDebug) {
         requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     uint32_t glfwExtensionCount = 0;
@@ -83,7 +83,7 @@ b8 mtVulkanContext::initialize() {
 
     // Validation layers
     mtVector<const char*> requiredLayers;
-    if (_context._enableDebug) {
+    if (_enableDebug) {
         requiredLayers.push_back("VK_LAYER_KHRONOS_validation");
     }
     createInfo.enabledLayerCount = static_cast<u32>(requiredLayers.size());
@@ -111,12 +111,12 @@ b8 mtVulkanContext::initialize() {
     createInfo.enabledLayerCount = static_cast<u32>(requiredLayers.size());
     createInfo.ppEnabledLayerNames = requiredLayers.data();
 
-    if (vkCreateInstance(&createInfo, nullptr, &_context._instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, nullptr, &_instance) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create Vulkan instance");
         return false;
     }
     
-    if (_context._enableDebug) {
+    if (_enableDebug) {
     
         VkDebugUtilsMessengerCreateInfoEXT createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -124,9 +124,9 @@ b8 mtVulkanContext::initialize() {
         createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = &debugCallback;
 
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(_context._instance, "vkCreateDebugUtilsMessengerEXT");
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(_instance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
-            if (func(_context._instance, &createInfo, nullptr, &_context._debugMessenger) != VK_SUCCESS) {
+            if (func(_instance, &createInfo, nullptr, &_debugMessenger) != VK_SUCCESS) {
                 MT_LOG_ERROR("Failed to set up debug messenger");
                 return false;
             }
@@ -145,9 +145,9 @@ b8 mtVulkanContext::initialize() {
 
 b8 mtVulkanContext::shutdown() {
     _vulkanDevice.shutdown();
-    if (_context._instance != VK_NULL_HANDLE) {
-        vkDestroyInstance(_context._instance, nullptr);
-        _context._instance = VK_NULL_HANDLE;
+    if (_instance != VK_NULL_HANDLE) {
+        vkDestroyInstance(_instance, nullptr);
+        _instance = VK_NULL_HANDLE;
     }
 
     MT_LOG_INFO("Vulkan Context Shutdown");

@@ -8,11 +8,12 @@ b8 mtVulkanSwapChain::initialize(mtVulkanContext* context, u32 width, u32 height
 }
 
 b8 mtVulkanSwapChain::create(u32 width, u32 height) {
-    VkDevice device = _context->getVulkanDevice()->getDeviceContext()->_logicDevice;
+    mtVulkanDevice* pDevice = _context->getVulkanDevice();
+    VkDevice device = pDevice->_logicDevice;
     VkExtent2D swapchainExtent = {width, height};
 
-    _context->getVulkanDevice()->querySwapChainSupport(
-        _context->getVkContext()->_surface, 
+    pDevice->querySwapChainSupport(
+        _context->_surface, 
         &_swapChainSupport
     );
 
@@ -21,7 +22,7 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
         VkSurfaceFormatKHR& currentFormat = _swapChainSupport._formats[i];
         if (currentFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
             currentFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            _swapChainCtx._imageFormat = currentFormat;
+            _imageFormat = currentFormat;
             found = true;
             break;
         }
@@ -53,19 +54,19 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
 
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainCreateInfo.surface = _context->getVkContext()->_surface;
+    swapchainCreateInfo.surface = _context->_surface;
     swapchainCreateInfo.minImageCount = desiredImageCount;
-    swapchainCreateInfo.imageFormat = _swapChainCtx._imageFormat.format;
-    swapchainCreateInfo.imageColorSpace = _swapChainCtx._imageFormat.colorSpace;
+    swapchainCreateInfo.imageFormat = _imageFormat.format;
+    swapchainCreateInfo.imageColorSpace = _imageFormat.colorSpace;
     swapchainCreateInfo.imageExtent = swapchainExtent;
     swapchainCreateInfo.imageArrayLayers = 1;
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    if (_context->getVulkanDevice()->getDeviceContext()->_graphicsFamilyIndex != 
-        _context->getVulkanDevice()->getDeviceContext()->_presentFamilyIndex) {
+    if (pDevice->_graphicsFamilyIndex != 
+        pDevice->_presentFamilyIndex) {
         u32 queueFamilyIndices[] = {
-            _context->getVulkanDevice()->getDeviceContext()->_graphicsFamilyIndex,
-            _context->getVulkanDevice()->getDeviceContext()->_presentFamilyIndex
+            pDevice->_graphicsFamilyIndex,
+            pDevice->_presentFamilyIndex
         };
         swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapchainCreateInfo.queueFamilyIndexCount = 2;
@@ -85,7 +86,7 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
         device,
         &swapchainCreateInfo,
         nullptr,
-        &_swapChainCtx._handler
+        &_handler
     );
     if (result != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create swapchain! VkResult: {}", static_cast<int>(result));
@@ -93,30 +94,30 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
     }
 
     // images
-    _swapChainCtx._imageCount = 0;
+    _imageCount = 0;
     vkGetSwapchainImagesKHR(
         device,
-        _swapChainCtx._handler,
-        &_swapChainCtx._imageCount,
+        _handler,
+        &_imageCount,
         0 
     );
-    _swapChainCtx._swapChainImages.resize(_swapChainCtx._imageCount);
+    _swapChainImages.resize(_imageCount);
     vkGetSwapchainImagesKHR(
         device,
-        _swapChainCtx._handler,
-        &_swapChainCtx._imageCount,
-        _swapChainCtx._swapChainImages.data()
+        _handler,
+        &_imageCount,
+        _swapChainImages.data()
     );
 
 
     // image views
-    _swapChainCtx._swapChainImageViews.resize(_swapChainCtx._imageCount);
-    for (size_t i = 0; i < _swapChainCtx._imageCount; i++) {
+    _swapChainImageViews.resize(_imageCount);
+    for (size_t i = 0; i < _imageCount; i++) {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = _swapChainCtx._swapChainImages[i];
+        createInfo.image = _swapChainImages[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = _swapChainCtx._imageFormat.format;
+        createInfo.format = _imageFormat.format;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -131,25 +132,25 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
             device, 
             &createInfo, 
             nullptr, 
-            &_swapChainCtx._swapChainImageViews[i]) != VK_SUCCESS) {
+            &_swapChainImageViews[i]) != VK_SUCCESS) {
             MT_LOG_ERROR("Failed to create image view");
             return false;
         }
     }
 
-    MT_LOG_INFO("Swapchain created with {} images.", _swapChainCtx._imageCount);
+    MT_LOG_INFO("Swapchain created with {} images.", _imageCount);
     return true;
 }
 
 b8 mtVulkanSwapChain::shutdown() {
-    vkDeviceWaitIdle(_context->getVulkanDevice()->getDeviceContext()->_logicDevice);
-    if (_swapChainCtx._handler != VK_NULL_HANDLE) {
+    vkDeviceWaitIdle(_context->getVulkanDevice()->_logicDevice);
+    if (_handler != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(
-            _context->getVulkanDevice()->getDeviceContext()->_logicDevice,
-            _swapChainCtx._handler,
+            _context->getVulkanDevice()->_logicDevice,
+            _handler,
             nullptr
         );
-        _swapChainCtx._handler = VK_NULL_HANDLE;
+        _handler = VK_NULL_HANDLE;
     }
     return true;
 }
