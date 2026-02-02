@@ -9,8 +9,8 @@
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    mtVector<VkSurfaceFormatKHR> formats;
+    mtVector<VkPresentModeKHR> presentModes;
 };
 
 struct QueueFamilyIndices {
@@ -38,8 +38,12 @@ public:
         _vulkanContext._height = height;
         return true;
     }
+    b8 renderPrepare() override;
+    b8 renderBegin() override;
+    b8 renderEnd() override;
+    b8 renderPresent() override;
     b8 recreateSwapChain();
-    b8 waitDeviceIdle();
+    // b8 waitDeviceIdle();
     
     // VkDevice getDevice() const { return _device; }
     // VkPhysicalDevice getPhysicalDevice() const { return _physicalDevice; }
@@ -66,8 +70,8 @@ private:
     b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
     
     b8 checkDeviceExtensionSupport(VkPhysicalDevice device);
-    std::vector<char> readFile(const std::string& filename);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
+    // mtVector<char> readFile(const std::string& filename);
+    // VkShaderModule createShaderModule(const mtVector<char>& code);
 
     // VkInstance _instance = VK_NULL_HANDLE;
     // VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
@@ -78,27 +82,27 @@ private:
     // VkQueue _presentQueue = VK_NULL_HANDLE;
 
     // VkCommandPool _commandPool = VK_NULL_HANDLE;
-    // std::vector<VkCommandBuffer> _commandBuffers;
+    // mtVector<VkCommandBuffer> _commandBuffers;
 
     // VkSwapchainKHR _swapChain = VK_NULL_HANDLE;
     // mtVector<VkImage>* _pSwapChainImages;
     // VkFormat _swapChainImageFormat;
     // VkExtent2D _swapChainExtent;
     // mtVector<VkImageView>* _pSwapChainImageViews;
-    std::vector<VkFramebuffer> _swapChainFramebuffers;
+    mtVector<VkFramebuffer> _swapChainFramebuffers;
 
     VkRenderPass _renderPass = VK_NULL_HANDLE;
-    VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline _graphicsPipeline = VK_NULL_HANDLE;
+    // VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
+    // VkPipeline _graphicsPipeline = VK_NULL_HANDLE;
 
-    std::vector<VkSemaphore> _imageAvailableSemaphores;
-    std::vector<VkSemaphore> _renderFinishedSemaphores;
-    std::vector<VkFence> _inFlightFences;
+    mtVector<VkSemaphore> _imageAvailableSemaphores;
+    mtVector<VkSemaphore> _renderFinishedSemaphores;
+    mtVector<VkFence> _inFlightFences;
     
     u32 _currentFrame = 0;
     b8 _framebufferResized = false;
     
-    static const u32 MAX_FRAMES_IN_FLIGHT = 2;
+    u32 MAX_FRAMES_IN_FLIGHT = 0;
 
     mtVulkanContext _vulkanContext;
 };

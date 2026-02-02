@@ -31,7 +31,12 @@ b8 mtRenderSystem::initialize() {
         return false;
     }
     mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
-        this->renderFrame({});
+        // this->renderFrame({});
+        if (!_backend->renderPrepare())
+            return;
+        _backend->renderBegin();
+        _backend->renderEnd();
+        _backend->renderPresent();
     });
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
         // Handle window resize

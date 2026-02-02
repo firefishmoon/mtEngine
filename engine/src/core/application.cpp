@@ -91,6 +91,7 @@ void mtApplication::run() {
 
     _platformData.hwnd = glfwGetWin32Window(window);
     _platformData.hInstance = GetModuleHandle(NULL);
+    _platformData.window = window;
     if (!mtRenderSystem::getInstance()->initialize()) {
         MT_LOG_FATAL("Failed to initialize Render System");
         return;
