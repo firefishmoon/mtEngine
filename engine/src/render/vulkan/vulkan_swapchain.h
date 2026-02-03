@@ -31,6 +31,8 @@ public:
 
     b8 recreate(u32 width, u32 height);
 
+    b8 represent();
+
     mtVulkanContext* getContext() { return _context; }
     // mtVkSwapChainContext* getSwapChainContext() { return &_swapChainCtx; }
 protected:

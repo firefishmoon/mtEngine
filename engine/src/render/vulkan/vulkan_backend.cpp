@@ -34,19 +34,15 @@ b8 mtVulkanBackend::initialize() {
     // _graphicsQueue = _vulkanContext.getVulkanDevice()->_graphicsQueue;
     // _presentQueue = _vulkanContext.getVulkanDevice()->_presentQueue;
 
-    if (!createSurface()) {
-        MT_LOG_ERROR("Failed to create surface!");
-       return false;
-    }
+    // if (!createSurface()) {
+    //     MT_LOG_ERROR("Failed to create surface!");
+    //    return false;
+    // }
 
-    _vulkanContext._width = 800;
-    _vulkanContext._height = 600;
-    _vulkanContext.getVulkanSwapChain()->initialize(&_vulkanContext, 
-        800, 
-        600
-    );
+    
+    
 
-    MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->_imageCount;
+    // MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->_imageCount;
     // _swapChain = _vulkanContext.getVulkanSwapChain()->_handler;
     // mtVkSwapChainContext* swapchainCtx = _vulkanContext.getVulkanSwapChain()->getSwapChainContext();
     // u32 imageCount = swapchainCtx->_imageCount;
@@ -83,10 +79,10 @@ b8 mtVulkanBackend::initialize() {
         return false;
     }
     
-    if (!createSyncObjects()) {
-        MT_LOG_ERROR("Failed to create sync objects!");
-        return false;
-    }
+    // if (!createSyncObjects()) {
+    //     MT_LOG_ERROR("Failed to create sync objects!");
+    //     return false;
+    // }
     
     MT_LOG_INFO("Vulkan Backend Initialized");
 
@@ -95,12 +91,12 @@ b8 mtVulkanBackend::initialize() {
 
 b8 mtVulkanBackend::shutdown() {
     // if (_device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
+    vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
     // }
 
-    _inFlightFences.clear();
-    _renderFinishedSemaphores.clear();
-    _imageAvailableSemaphores.clear();
+    // _inFlightFences.clear();
+    // _renderFinishedSemaphores.clear();
+    // _imageAvailableSemaphores.clear();
 
     // _commandBuffers.clear();
     // _commandPool = VK_NULL_HANDLE;
@@ -373,29 +369,29 @@ b8 mtVulkanBackend::createCommandBuffers() {
     return true;
 }
 
-b8 mtVulkanBackend::createSyncObjects() {
-    _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    _inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS) {
-            MT_LOG_ERROR("Failed to create sync objects");
-            return false;
-        }
-    }
-
-    return true;
-}
+// b8 mtVulkanBackend::createSyncObjects() {
+//     _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+//     _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+//     _inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+//
+//     VkSemaphoreCreateInfo semaphoreInfo{};
+//     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+//     VkFenceCreateInfo fenceInfo{};
+//     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+//     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+//
+//     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
+//     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+//         if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+//             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+//             vkCreateFence(device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS) {
+//             MT_LOG_ERROR("Failed to create sync objects");
+//             return false;
+//         }
+//     }
+//
+//     return true;
+// }
 
 b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
@@ -448,78 +444,78 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
     return true;
 }
 
-b8 mtVulkanBackend::renderFrame() {
-    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-    VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
-
-    vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
-    
-    auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
-
-
-    uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
-    
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        return recreateSwapChain();
-    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        MT_LOG_ERROR("Failed to acquire swap chain image!");
-        return false;
-    }
-    
-    vkResetFences(device, 1, &_inFlightFences[_currentFrame]);
-
-    vkResetCommandBuffer(commandBuffer, 0);
-
-    if (!recordCommandBuffer(commandBuffer, imageIndex)) {
-        return false;
-    }
-    
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    
-    VkSemaphore waitSemaphores[] = {_imageAvailableSemaphores[_currentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    
-    VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-    
-    if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to submit draw command buffer!");
-        return false;
-    }
-    
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-    
-    VkSwapchainKHR swapChains[] = {swapChain};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    
-    result = vkQueuePresentKHR(_vulkanContext._vulkanDevice._presentQueue, &presentInfo);
-    
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _framebufferResized) {
-        _framebufferResized = false;
-        return recreateSwapChain();
-    } else if (result != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to present swap chain image!");
-        return false;
-    }
-    
-    _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    
-    return true;
-}
+// b8 mtVulkanBackend::renderFrame() {
+//     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
+//     VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
+//
+//     vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
+//     
+//     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
+//     VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
+//
+//
+//     uint32_t imageIndex;
+//     VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
+//     
+//     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+//         return recreateSwapChain();
+//     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+//         MT_LOG_ERROR("Failed to acquire swap chain image!");
+//         return false;
+//     }
+//     
+//     vkResetFences(device, 1, &_inFlightFences[_currentFrame]);
+//
+//     vkResetCommandBuffer(commandBuffer, 0);
+//
+//     if (!recordCommandBuffer(commandBuffer, imageIndex)) {
+//         return false;
+//     }
+//     
+//     VkSubmitInfo submitInfo{};
+//     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//     
+//     VkSemaphore waitSemaphores[] = {_imageAvailableSemaphores[_currentFrame]};
+//     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+//     submitInfo.waitSemaphoreCount = 1;
+//     submitInfo.pWaitSemaphores = waitSemaphores;
+//     submitInfo.pWaitDstStageMask = waitStages;
+//     submitInfo.commandBufferCount = 1;
+//     submitInfo.pCommandBuffers = &commandBuffer;
+//     
+//     VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};
+//     submitInfo.signalSemaphoreCount = 1;
+//     submitInfo.pSignalSemaphores = signalSemaphores;
+//     
+//     if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS) {
+//         MT_LOG_ERROR("Failed to submit draw command buffer!");
+//         return false;
+//     }
+//     
+//     VkPresentInfoKHR presentInfo{};
+//     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+//     presentInfo.waitSemaphoreCount = 1;
+//     presentInfo.pWaitSemaphores = signalSemaphores;
+//     
+//     VkSwapchainKHR swapChains[] = {swapChain};
+//     presentInfo.swapchainCount = 1;
+//     presentInfo.pSwapchains = swapChains;
+//     presentInfo.pImageIndices = &imageIndex;
+//     
+//     result = vkQueuePresentKHR(_vulkanContext._vulkanDevice._presentQueue, &presentInfo);
+//     
+//     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _framebufferResized) {
+//         _framebufferResized = false;
+//         return recreateSwapChain();
+//     } else if (result != VK_SUCCESS) {
+//         MT_LOG_ERROR("Failed to present swap chain image!");
+//         return false;
+//     }
+//     
+//     _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+//     
+//     return true;
+// }
 
 b8 mtVulkanBackend::recreateSwapChain() {
     vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
@@ -596,10 +592,10 @@ b8 mtVulkanBackend::renderPrepare() {
     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
     VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
 
-    vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &_vulkanContext._inFlightFences[_vulkanContext._currentFrame], VK_TRUE, UINT64_MAX);
 
     // uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &_vulkanContext._vulkanSwapChain._imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _vulkanContext._imageAvailableSemaphores[_vulkanContext._currentFrame], VK_NULL_HANDLE, &_vulkanContext._vulkanSwapChain._imageIndex);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return recreateSwapChain();
@@ -608,7 +604,7 @@ b8 mtVulkanBackend::renderPrepare() {
         return false;
     }
     
-    vkResetFences(device, 1, &_inFlightFences[_currentFrame]);
+    vkResetFences(device, 1, &_vulkanContext._inFlightFences[_vulkanContext._currentFrame]);
 
    
     return true;
@@ -616,7 +612,7 @@ b8 mtVulkanBackend::renderPrepare() {
 
 b8 mtVulkanBackend::renderBegin() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
+    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame].getCommandBufferContext()->_commandBuffer;
 
     vkResetCommandBuffer(commandBuffer, 0);
 
@@ -646,7 +642,7 @@ b8 mtVulkanBackend::renderBegin() {
 
 b8 mtVulkanBackend::renderEnd() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
+    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame].getCommandBufferContext()->_commandBuffer;
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -675,7 +671,7 @@ b8 mtVulkanBackend::renderEnd() {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     
-    VkSemaphore waitSemaphores[] = {_imageAvailableSemaphores[_currentFrame]};
+    VkSemaphore waitSemaphores[] = {_vulkanContext._imageAvailableSemaphores[_vulkanContext._currentFrame]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -683,11 +679,11 @@ b8 mtVulkanBackend::renderEnd() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
     
-    VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};
+    VkSemaphore signalSemaphores[] = {_vulkanContext._renderFinishedSemaphores[_vulkanContext._currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
     
-    if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _vulkanContext._inFlightFences[_vulkanContext._currentFrame]) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to submit draw command buffer!");
         return false;
     }
@@ -696,29 +692,6 @@ b8 mtVulkanBackend::renderEnd() {
 }
 
 b8 mtVulkanBackend::renderPresent() {
-    VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
-
-    VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-    
-    VkSwapchainKHR swapChains[] = {swapChain};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &_vulkanContext._vulkanSwapChain._imageIndex;
-    
-    VkResult result = vkQueuePresentKHR(_vulkanContext._vulkanDevice._presentQueue, &presentInfo);
-    
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _framebufferResized) {
-        _framebufferResized = false;
-        return recreateSwapChain();
-    } else if (result != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to present swap chain image!");
-        return false;
-    }
-    
-    _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    _vulkanContext._vulkanSwapChain.represent();
     return true;
 }

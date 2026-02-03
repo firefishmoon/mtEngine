@@ -2,7 +2,9 @@
 #include "core/loggersystem.h"
 #include "core/std_wrapper.h"
 
+#define GLFW_INCLUDE_VULKAN 
 #include <glfw/glfw3.h>
+#include "core/application.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
     if (severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT || severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
@@ -139,11 +141,46 @@ b8 mtVulkanContext::initialize() {
         return false;
     }
 
+    
+    mtPlatformData data = mtApplication::getInstance()->getPlatformData();
+    glfwCreateWindowSurface(_instance, data.window, 0, &_surface);
+
+    _vulkanSwapChain.initialize(this, 
+        800, 
+        600
+    );
+    _width = 800;
+    _height = 600;
+
+    u32 MAX_FRAMES_IN_FLIGHT = _vulkanSwapChain._imageCount;
+
+    _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    _inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkDevice device = _vulkanDevice._logicDevice;
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS) {
+            MT_LOG_ERROR("Failed to create sync objects");
+            return false;
+        }
+    }
+
     MT_LOG_INFO("Vulkan Context Initialized");
     return true;
 }
 
 b8 mtVulkanContext::shutdown() {
+    _vulkanSwapChain.shutdown();
+
     _vulkanDevice.shutdown();
     if (_instance != VK_NULL_HANDLE) {
         vkDestroyInstance(_instance, nullptr);
