@@ -166,3 +166,32 @@ b8 mtVulkanSwapChain::recreate(u32 width, u32 height) {
     }
     return true;
 }
+
+b8 mtVulkanSwapChain::represent() {
+    VkSwapchainKHR swapChain = _handler;
+
+    VkSemaphore signalSemaphores[] = {_context->_renderFinishedSemaphores[_context->_currentFrame]};
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    
+    VkSwapchainKHR swapChains[] = {swapChain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &_imageIndex;
+    
+    VkResult result = vkQueuePresentKHR(_context->_vulkanDevice._presentQueue, &presentInfo);
+    
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        // _framebufferResized = false;
+        // return recreateSwapChain();
+        return recreate(_context->_width, _context->_height);
+    } else if (result != VK_SUCCESS) {
+        MT_LOG_ERROR("Failed to present swap chain image!");
+        return false;
+    }
+    
+    _context->_currentFrame = (_context->_currentFrame + 1) % _imageCount;
+    return true;
+}

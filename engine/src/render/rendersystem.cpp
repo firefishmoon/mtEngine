@@ -31,12 +31,8 @@ b8 mtRenderSystem::initialize() {
         return false;
     }
     mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
-        // this->renderFrame({});
-        if (!_backend->renderPrepare())
-            return;
-        _backend->renderBegin();
-        _backend->renderEnd();
-        _backend->renderPresent();
+        this->renderFrame({});
+        
     });
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
         // Handle window resize
@@ -57,7 +53,12 @@ b8 mtRenderSystem::shutdown() {
 
 void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
     // Process the render packet and issue draw calls
-    if (_backend) {
-        _backend->renderFrame();
-    }
+    // if (_backend) {
+    //     _backend->renderFrame();
+    // }
+    if (!_backend->renderPrepare())
+            return;
+    _backend->renderBegin();
+    _backend->renderEnd();
+    _backend->renderPresent();
 }

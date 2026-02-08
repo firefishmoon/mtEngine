@@ -31,7 +31,7 @@ public:
     b8 createSurface();
     b8 shutdown() override;
     
-    b8 renderFrame() override;
+    // b8 renderFrame() override;
     b8 onResize(u32 width, u32 height) override {
         _framebufferResized = true;
         _vulkanContext._width = width;
@@ -52,7 +52,7 @@ public:
     // VkSurfaceKHR getSurface() const { return _surface; }
     // VkInstance getInstance() const { return _instance; }
     
-private:
+protected:
     // b8 pickPhysicalDevice();
     // b8 isDeviceSuitable(VkPhysicalDevice device);
     // QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -64,7 +64,7 @@ private:
     b8 createFramebuffers();
     // b8 createCommandPool();
     b8 createCommandBuffers();
-    b8 createSyncObjects();
+    // b8 createSyncObjects();
     
     
     b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
@@ -95,11 +95,11 @@ private:
     // VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
     // VkPipeline _graphicsPipeline = VK_NULL_HANDLE;
 
-    mtVector<VkSemaphore> _imageAvailableSemaphores;
-    mtVector<VkSemaphore> _renderFinishedSemaphores;
-    mtVector<VkFence> _inFlightFences;
+    // mtVector<VkSemaphore> _imageAvailableSemaphores;
+    // mtVector<VkSemaphore> _renderFinishedSemaphores;
+    // mtVector<VkFence> _inFlightFences;
     
-    u32 _currentFrame = 0;
+    // u32 _currentFrame = 0;
     b8 _framebufferResized = false;
     
     u32 MAX_FRAMES_IN_FLIGHT = 0;

@@ -45,4 +45,10 @@ protected:
 
     u16 _width;
     u16 _height;
+
+    mtVector<VkSemaphore> _imageAvailableSemaphores;
+    mtVector<VkSemaphore> _renderFinishedSemaphores;
+    mtVector<VkFence> _inFlightFences;
+
+    u32 _currentFrame;
 };
