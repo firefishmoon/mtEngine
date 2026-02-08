@@ -20,7 +20,7 @@ typedef struct vulkan_physical_device_queue_family_info {
     s32 transfer_family_index;
 } vulkan_physical_device_queue_family_info;
 
-static b8 isDeviceSuitable(VkPhysicalDevice device, vulkan_physical_device_queue_family_info* outQueueFamilyInfo) {
+static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan_physical_device_queue_family_info* outQueueFamilyInfo) {
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -43,7 +43,9 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, vulkan_physical_device_queue
         s32 presentFamily = -1;
         const auto& queueFamily = queueFamilies[i];
         // TODO: Platform specific present support check
-        b8 presentSupport = vkGetPhysicalDeviceWin32PresentationSupportKHR(device, i);
+        // b8 presentSupport = vkGetPhysicalDeviceWin32PresentationSupportKHR(device, i);
+        VkBool32 presentSupport = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
         
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             outQueueFamilyInfo->graphics_family_index = i;
@@ -90,7 +92,7 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
 
     vulkan_physical_device_queue_family_info queueFamilyInfo = {-1, -1, -1, -1};
     for (const auto& device : devices) {
-        if (isDeviceSuitable(device, &queueFamilyInfo)) {
+        if (isDeviceSuitable(device, _context->_surface, &queueFamilyInfo)) {
             _physicalDevice = device;
             break;
         }

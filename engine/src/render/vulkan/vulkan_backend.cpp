@@ -8,7 +8,9 @@
 #include "core/loggersystem.h"
 #include "core/application.h"
 #include "core/platform.h"
+#include "vulkan_error.h"
 #include <windows.h>
+#include <assert.h>
 
 constexpr bool enableValidationLayers = true;
 const std::vector<const char*> validationLayers = {
@@ -28,50 +30,13 @@ b8 mtVulkanBackend::initialize() {
         MT_LOG_ERROR("Failed to initialize Vulkan context!");
         return false;
     }
-    // _instance = _vulkanContext._instance;
-    // _device = _vulkanContext.getVulkanDevice()->_logicDevice;
-    // _physicalDevice = _vulkanContext.getVulkanDevice()->_physicalDevice;
-    // _graphicsQueue = _vulkanContext.getVulkanDevice()->_graphicsQueue;
-    // _presentQueue = _vulkanContext.getVulkanDevice()->_presentQueue;
-
-    if (!createSurface()) {
-        MT_LOG_ERROR("Failed to create surface!");
-       return false;
-    }
-
-    _vulkanContext._width = 800;
-    _vulkanContext._height = 600;
-    _vulkanContext.getVulkanSwapChain()->initialize(&_vulkanContext, 
-        800, 
-        600
-    );
-
+    
     MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->_imageCount;
-    // _swapChain = _vulkanContext.getVulkanSwapChain()->_handler;
-    // mtVkSwapChainContext* swapchainCtx = _vulkanContext.getVulkanSwapChain()->getSwapChainContext();
-    // u32 imageCount = swapchainCtx->_imageCount;
-    // _swapChainImages.resize(imageCount);
-    // if (imageCount > 0) vkGetSwapchainImagesKHR(_device, _swapChain, &imageCount, _swapChainImages.data());
-    // _pSwapChainImages = &_vulkanContext.getVulkanSwapChain()->_swapChainImages;
-    // _pSwapChainImageViews = &_vulkanContext.getVulkanSwapChain()->_swapChainImageViews;
-    // _swapChainImageFormat = _vulkanContext.getVulkanSwapChain()->_imageFormat.format;
-    // _swapChainExtent = {800, 600};
-    // _commandPool = _vulkanContext.getVulkanDevice()->_graphicsCommandPool;
-    
-    // if (!createImageViews()) {
-    //     MT_LOG_ERROR("Failed to create image views!");
-    //     return false;
-    // }
-    
+
     if (!createRenderPass()) {
         MT_LOG_ERROR("Failed to create render pass!");
         return false;
     }
-    
-    // if (!createGraphicsPipeline()) {
-    //     MT_LOG_ERROR("Failed to create graphics pipeline!");
-    //     return false;
-    // }
     
     if (!createFramebuffers()) {
         MT_LOG_ERROR("Failed to create framebuffers!");
@@ -102,27 +67,8 @@ b8 mtVulkanBackend::shutdown() {
     _renderFinishedSemaphores.clear();
     _imageAvailableSemaphores.clear();
 
-    // _commandBuffers.clear();
-    // _commandPool = VK_NULL_HANDLE;
-
-    // _swapChainFramebuffers.clear();
-    // _graphicsPipeline = VK_NULL_HANDLE;
-    // _pipelineLayout = VK_NULL_HANDLE;
     _renderPass = VK_NULL_HANDLE;
 
-    // _swapChainImageViews.clear();
-    // _swapChain = VK_NULL_HANDLE;
-
-    // if (_device != VK_NULL_HANDLE) {
-        // vkDestroyDevice(_device, nullptr);
-        // _device = VK_NULL_HANDLE;
-    // }
-
-    // if (_surface != VK_NULL_HANDLE) {
-        // vkDestroySurfaceKHR(_instance, _surface, nullptr);
-        // _surface = VK_NULL_HANDLE;
-    // }
-    
     return true;
 }
 
@@ -143,8 +89,12 @@ b8 mtVulkanBackend::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 b8 mtVulkanBackend::createSurface() {
-    mtPlatformData data = mtApplication::getInstance()->getPlatformData();
-    glfwCreateWindowSurface(_vulkanContext._instance, data.window, 0, &_vulkanContext._surface);
+    // mtPlatformData data = mtApplication::getInstance()->getPlatformData();
+    // // VkResult result = glfwCreateWindowSurface(_vulkanContext._instance, data.window, 0, &_vulkanContext._surface);
+    // VK_CHECK(glfwCreateWindowSurface(_vulkanContext._instance, data.window, 0, &_vulkanContext._surface));
+    // if (result != VK_SUCCESS) {
+    //     return false;
+    // }
     // VkWin32SurfaceCreateInfoKHR createInfo = {};
     // createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     // createInfo.hwnd = data.hwnd;
@@ -422,19 +372,19 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 
     // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
 
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float)_vulkanContext._width;
-    viewport.height = (float)_vulkanContext._height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = {_vulkanContext._width, _vulkanContext._height};
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    // VkViewport viewport{};
+    // viewport.x = 0.0f;
+    // viewport.y = 0.0f;
+    // viewport.width = (float)_vulkanContext._width;
+    // viewport.height = (float)_vulkanContext._height;
+    // viewport.minDepth = 0.0f;
+    // viewport.maxDepth = 1.0f;
+    // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    //
+    // VkRect2D scissor{};
+    // scissor.offset = {0, 0};
+    // scissor.extent = {_vulkanContext._width, _vulkanContext._height};
+    // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 

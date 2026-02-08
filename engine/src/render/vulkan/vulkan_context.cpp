@@ -1,6 +1,9 @@
 #include "vulkan_context.h"
+#include "vulkan_error.h"
 #include "core/loggersystem.h"
 #include "core/std_wrapper.h"
+#include "core/application.h"
+#include "core/platform.h"
 
 #include <glfw/glfw3.h>
 
@@ -134,10 +137,19 @@ b8 mtVulkanContext::initialize() {
 
     }
     
+    // create surface
+    mtPlatformData* data = mtApplication::getInstance()->getPlatformData();
+    VK_CHECK(glfwCreateWindowSurface(_instance, data->window, 0, &_surface));
+
     if (!_vulkanDevice.initialize(this)) {
         MT_LOG_ERROR("Failed to initialize Vulkan Device");
         return false;
     }
+
+    _width = data->wndWidth;
+    _height = data->wndHeight;
+    // initialize swapchain
+    _vulkanSwapChain.initialize(this, data->wndWidth, data->wndHeight);
 
     MT_LOG_INFO("Vulkan Context Initialized");
     return true;

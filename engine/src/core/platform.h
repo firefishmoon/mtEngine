@@ -1,14 +1,16 @@
 #pragma once
-#if defined(_WIN32) || defined(_WIN64)
-// 这里是 Windows（32 位或 64 位）
-#include <windows.h>
+// #if defined(_WIN32) || defined(_WIN64)
+// #include <windows.h>
+
+#include "defines.h"
 struct GLFWwindow;
 
 struct mtPlatformData {
-    HINSTANCE hInstance;
-    HWND hwnd;
+    // HINSTANCE hInstance;
+    // HWND hwnd;
     GLFWwindow* window;
-
+    u32 wndWidth;
+    u32 wndHeight;
 };
 
-#endif
+// #endif

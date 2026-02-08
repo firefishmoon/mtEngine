@@ -147,7 +147,7 @@ public:
     b8 shutdown() override;
 
     void run();
-    mtPlatformData getPlatformData() const { return _platformData; }
+    mtPlatformData* getPlatformData() { return &_platformData; }
 private:
     mtAppConfig _config;
     mtPlatformData _platformData;
