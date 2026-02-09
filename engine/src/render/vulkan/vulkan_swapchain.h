@@ -27,6 +27,8 @@ class mtVulkanContext;
 
 class mtVulkanSwapChain {
 public:
+    ~mtVulkanSwapChain() {
+    }
     b8 initialize(mtVulkanContext* context, u32 width, u32 height);
     b8 create(u32 width, u32 height);
     b8 shutdown();

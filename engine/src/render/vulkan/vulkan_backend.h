@@ -25,7 +25,9 @@ struct QueueFamilyIndices {
 class MT_API mtVulkanBackend : public mtIBackend {
 public:
     mtVulkanBackend() = default;
-    ~mtVulkanBackend() override = default;
+    ~mtVulkanBackend() override {
+        shutdown();
+    };
 
     b8 initialize() override;
     b8 createSurface();

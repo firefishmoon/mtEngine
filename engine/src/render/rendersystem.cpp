@@ -46,8 +46,9 @@ b8 mtRenderSystem::initialize() {
 
 b8 mtRenderSystem::shutdown() {
     // Shutdown the rendering backend
-    if (_backend)
-        delete _backend;
+    if (_backend) {
+        MT_DELETE((mtVulkanBackend*)_backend, mtVulkanBackend);
+    }
     return true;
 }
 

@@ -8,9 +8,6 @@ mtVulkanImage::mtVulkanImage()
     : _pVulkanContext(nullptr) {
 }
 
-mtVulkanImage::~mtVulkanImage() {
-    shutdown();
-}
 
 b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
                             u32 width,

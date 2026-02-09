@@ -63,13 +63,16 @@ b8 mtVulkanBackend::shutdown() {
     // if (_device != VK_NULL_HANDLE) {
     vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
     // }
-
+    vkDestroyRenderPass(_vulkanContext._vulkanDevice._logicDevice, _renderPass, 0);
+    
     // _inFlightFences.clear();
     // _renderFinishedSemaphores.clear();
     // _imageAvailableSemaphores.clear();
-
+    
+    // _vulkanContext.shutdown();
     _renderPass = VK_NULL_HANDLE;
 
+    MT_LOG_INFO("Vulkan Backend shutdown");
     return true;
 }
 

@@ -32,6 +32,15 @@ public:
         return new (mem) T(std::forward<Args>(args)...);
     }
 
+    template<typename T>
+    void deleteType(T* ptr) {
+        if (ptr) {
+            ptr->~T();
+            deallocate(ptr);
+        }
+    }
+    
+
 private:
     class mtMemTagInfo {
     public:
@@ -42,7 +51,8 @@ private:
 };
 
 #define MT_ALLOCATE(tag, size) mtMemorySystem::getInstance()->allocate(tag, size)
+#define MT_FREE(ptr) mtMemorySystem::getInstance()->deallocate(ptr)
 #define MT_NEW(tag, type, ...) mtMemorySystem::getInstance()->allocate<type>(tag, ##__VA_ARGS__)
-#define MT_DELETE(ptr) mtMemorySystem::getInstance()->deallocate(ptr)
+#define MT_DELETE(ptr, type) mtMemorySystem::getInstance()->deleteType<type>(ptr)
 
 

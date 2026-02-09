@@ -162,7 +162,16 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
 }
 
 b8 mtVulkanSwapChain::shutdown() {
+    VkDevice device = _context->getVulkanDevice()->_logicDevice;
     vkDeviceWaitIdle(_context->getVulkanDevice()->_logicDevice);
+
+    for (size_t i = 0; i < _imageCount; i++) {
+        vkDestroyImageView(device, _swapChainImageViews[i], 0);
+        _framebuffers[i].shutdown();
+    }
+
+    _depthAttachment.shutdown();
+
     if (_handler != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(
             _context->getVulkanDevice()->_logicDevice,

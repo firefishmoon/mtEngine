@@ -21,6 +21,8 @@ struct mtVkCommandBufferContext {
 
 class mtVulkanCommandBuffer {
 public:
+    ~mtVulkanCommandBuffer() {
+    }
     b8 initialize(mtVulkanContext* context, b8 isPrimary);
     b8 shutdown();
 

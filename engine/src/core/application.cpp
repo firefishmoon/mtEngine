@@ -37,6 +37,7 @@ b8 mtApplication::shutdown() {
     mtJobSystem::getInstance()->shutdown();
     mtMemorySystem::getInstance()->shutdown();
     mtLoggerSystem::getInstance()->shutdown();
+    mtRenderSystem::getInstance()->shutdown();
  
     MT_LOG_INFO("Application Shutdown");
     return true;

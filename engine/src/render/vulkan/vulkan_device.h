@@ -22,6 +22,9 @@ struct mtVkSwapchainSupportInfo;
 
 class mtVulkanDevice {
 public:
+    ~mtVulkanDevice() {
+    }
+
     b8 initialize(mtVulkanContext* context);
 
     b8 shutdown();

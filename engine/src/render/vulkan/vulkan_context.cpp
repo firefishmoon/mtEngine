@@ -188,9 +188,32 @@ b8 mtVulkanContext::initialize() {
 }
 
 b8 mtVulkanContext::shutdown() {
+    vkDeviceWaitIdle(_vulkanDevice._logicDevice);
+
+    for (auto& commandbuffer : _commandBuffers) {
+        commandbuffer.shutdown();
+    }
+
+
+    VkDevice device = _vulkanDevice._logicDevice;
+    for (u32 i = 0; i < _vulkanSwapChain._imageCount; ++i) {
+        vkDestroySemaphore(device, _imageAvailableSemaphores[i], 0);
+        vkDestroySemaphore(device, _renderFinishedSemaphores[i], 0);
+        vkDestroyFence(device, _inFlightFences[i], 0);
+    }
+
+    
     _vulkanSwapChain.shutdown();
 
     _vulkanDevice.shutdown();
+
+    vkDestroySurfaceKHR(_instance, _surface, 0);
+
+    if (_enableDebug) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(_instance, "vkDestroyDebugUtilsMessengerEXT");
+        func(_instance, _debugMessenger, 0);
+    }
+
     if (_instance != VK_NULL_HANDLE) {
         vkDestroyInstance(_instance, nullptr);
         _instance = VK_NULL_HANDLE;

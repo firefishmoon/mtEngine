@@ -9,7 +9,8 @@ class mtVulkanContext;
 class mtVulkanImage {
 public:
     mtVulkanImage();
-    ~mtVulkanImage();
+    ~mtVulkanImage() {
+    }
 
     b8 initialize(mtVulkanContext* pVulkanContext,
                 u32 width,
