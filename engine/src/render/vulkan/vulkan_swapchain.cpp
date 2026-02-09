@@ -57,7 +57,6 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
     swapchainCreateInfo.surface = _context->_surface;
     swapchainCreateInfo.minImageCount = desiredImageCount;
     swapchainCreateInfo.imageFormat = _imageFormat.format;
-    swapchainCreateInfo.imageColorSpace = _imageFormat.colorSpace;
     swapchainCreateInfo.imageExtent = swapchainExtent;
     swapchainCreateInfo.imageArrayLayers = 1;
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -137,6 +136,26 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
             return false;
         }
     }
+
+    if (!_context->getVulkanDevice()->detectDepthFormat()) {
+        MT_LOG_FATAL("VulkanDevice detectDepthFormat Failed");
+        return false;
+    }
+
+    _depthAttachment.initialize(
+        _context, 
+        _context->_width, 
+        _context->_height, 
+        _context->getVulkanDevice()->_depthFormat, 
+        VK_IMAGE_TILING_OPTIMAL, 
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+        true, 
+        VK_IMAGE_ASPECT_DEPTH_BIT,
+        1);
+
+    // framebuffers
+    _framebuffers.resize(_imageCount);
 
     MT_LOG_INFO("Swapchain created with {} images.", _imageCount);
     return true;

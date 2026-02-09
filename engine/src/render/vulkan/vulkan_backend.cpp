@@ -44,10 +44,10 @@ b8 mtVulkanBackend::initialize() {
         return false;
     }
     
-    if (!createCommandBuffers()) {
-        MT_LOG_ERROR("Failed to create command buffers!");
-        return false;
-    }
+    // if (!createCommandBuffers()) {
+    //     MT_LOG_ERROR("Failed to create command buffers!");
+    //     return false;
+    // }
     
     // if (!createSyncObjects()) {
     //     MT_LOG_ERROR("Failed to create sync objects!");
@@ -89,27 +89,11 @@ b8 mtVulkanBackend::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-b8 mtVulkanBackend::createSurface() {
-    // mtPlatformData data = mtApplication::getInstance()->getPlatformData();
-    // // VkResult result = glfwCreateWindowSurface(_vulkanContext._instance, data.window, 0, &_vulkanContext._surface);
-    // VK_CHECK(glfwCreateWindowSurface(_vulkanContext._instance, data.window, 0, &_vulkanContext._surface));
-    // if (result != VK_SUCCESS) {
-    //     return false;
-    // }
-    // VkWin32SurfaceCreateInfoKHR createInfo = {};
-    // createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    // createInfo.hwnd = data.hwnd;
-    // createInfo.hinstance = data.hInstance;
-    // if (vkCreateWin32SurfaceKHR(_vulkanContext._instance, &createInfo, nullptr, &_vulkanContext._surface) != VK_SUCCESS) {
-    //     MT_LOG_FATAL("Failed to create window surface!");
-    //     return false;
-    // }
-    // _surface = _vulkanContext._surface;
-    return true;
-}
-
 
 b8 mtVulkanBackend::createRenderPass() {
+    const u32 attachment_description_count = 2;
+    VkAttachmentDescription attachment_descriptions[attachment_description_count];
+
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = _vulkanContext._vulkanSwapChain._imageFormat.format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -119,6 +103,8 @@ b8 mtVulkanBackend::createRenderPass() {
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    attachment_descriptions[0] = colorAttachment;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
@@ -135,12 +121,31 @@ b8 mtVulkanBackend::createRenderPass() {
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.srcAccessMask = 0;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+
+    VkAttachmentDescription depth_attachment = {};
+    depth_attachment.format = _vulkanContext._vulkanDevice._depthFormat;
+    depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    attachment_descriptions[1] = depth_attachment;
+
+    VkAttachmentReference depth_attachment_reference;
+    depth_attachment_reference.attachment = 1;
+    depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    subpass.pDepthStencilAttachment = &depth_attachment_reference;
 
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.attachmentCount = 2;
+    renderPassInfo.pAttachments = attachment_descriptions;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 1;
@@ -152,6 +157,8 @@ b8 mtVulkanBackend::createRenderPass() {
         return false;
     }
     
+    _vulkanContext._mainRenderPass._handler = _renderPass;
+
     return true;
 }
 
@@ -277,76 +284,40 @@ b8 mtVulkanBackend::createRenderPass() {
 // }
 
 b8 mtVulkanBackend::createFramebuffers() {
-    _swapChainFramebuffers.resize(_vulkanContext._vulkanSwapChain._swapChainImageViews.size());
+    // _swapChainFramebuffers.resize(_vulkanContext._vulkanSwapChain._swapChainImageViews.size());
 
     for (size_t i = 0; i < _vulkanContext._vulkanSwapChain._swapChainImageViews.size(); i++) {
-        VkImageView attachments[] = {_vulkanContext._vulkanSwapChain._swapChainImageViews[i]};
+        // VkImageView attachments[] = {_vulkanContext._vulkanSwapChain._swapChainImageViews[i]};
+        mtVector<VkImageView> vector = {
+            _vulkanContext._vulkanSwapChain._swapChainImageViews[i],
+            _vulkanContext._vulkanSwapChain._depthAttachment._imageView
+        };
 
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = _renderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
-        framebufferInfo.width = _vulkanContext._width;
-        framebufferInfo.height = _vulkanContext._height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(_vulkanContext._vulkanDevice._logicDevice, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
-            MT_LOG_ERROR("Failed to create framebuffer");
-            return false;
-        }
+        // VkFramebufferCreateInfo framebufferInfo{};
+        // framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        // framebufferInfo.renderPass = _renderPass;
+        // framebufferInfo.attachmentCount = 1;
+        // framebufferInfo.pAttachments = attachments;
+        // framebufferInfo.width = _vulkanContext._width;
+        // framebufferInfo.height = _vulkanContext._height;
+        // framebufferInfo.layers = 1;
+        //
+        // if (vkCreateFramebuffer(_vulkanContext._vulkanDevice._logicDevice, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
+        //     MT_LOG_ERROR("Failed to create framebuffer");
+        //     return false;
+        // }
+        _vulkanContext._vulkanSwapChain._framebuffers[i].initialize(
+            &_vulkanContext,                                                         
+            &_vulkanContext._mainRenderPass, 
+            _vulkanContext._width, 
+            _vulkanContext._height, 
+            vector);
     }
 
     return true;
 }
 
 
-b8 mtVulkanBackend::createCommandBuffers() {
-    // _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    //
-    // VkCommandBufferAllocateInfo allocInfo{};
-    // allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    // allocInfo.commandPool = _commandPool;
-    // allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
-    //
-    // if (vkAllocateCommandBuffers(_device, &allocInfo, _commandBuffers.data()) != VK_SUCCESS) {
-    //     MT_LOG_ERROR("Failed to allocate command buffers");
-    //     return false;
-    // }
-    u32 imageCount = _vulkanContext.getVulkanSwapChain()->_imageCount;
-    auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    _pCommandBuffers->resize(imageCount);
-    for (auto& cmdBuffer : *_pCommandBuffers) {
-        cmdBuffer.initialize(&_vulkanContext, true); 
-    }
-
-    return true;
-}
-
-// b8 mtVulkanBackend::createSyncObjects() {
-//     _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-//     _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-//     _inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-//
-//     VkSemaphoreCreateInfo semaphoreInfo{};
-//     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-//     VkFenceCreateInfo fenceInfo{};
-//     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-//     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-//
-//     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-//     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-//         if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-//             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-//             vkCreateFence(device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS) {
-//             MT_LOG_ERROR("Failed to create sync objects");
-//             return false;
-//         }
-//     }
-//
-//     return true;
-// }
 
 b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
@@ -360,14 +331,20 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _renderPass;
-    renderPassInfo.framebuffer = _swapChainFramebuffers[imageIndex];
+    renderPassInfo.renderPass = _vulkanContext._mainRenderPass._handler;//_renderPass;
+    renderPassInfo.framebuffer = _vulkanContext._vulkanSwapChain._framebuffers[imageIndex]._handler; //_swapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = {_vulkanContext._width, _vulkanContext._height};
 
-    VkClearValue clearColor = {{{0.0f, 0.0f, 1.0f, 1.0f}}};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+    VkClearValue clearColor[2]; //= {{{0.0f, 0.0f, 1.0f, 1.0f}}};
+    clearColor[0].color.float32[0] = 0.0f;
+    clearColor[0].color.float32[1] = 0.0f;
+    clearColor[0].color.float32[2] = 0.2f;
+    clearColor[0].color.float32[3] = 1.0f;
+    clearColor[1].depthStencil.depth = 0.0f;
+    clearColor[1].depthStencil.stencil = 0.0f;
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = clearColor;
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -479,7 +456,10 @@ b8 mtVulkanBackend::recreateSwapChain() {
         MT_LOG_ERROR("VulkanBackend recreateSwapChain fail.");
         return false;
     }
-    
+    for (u32 i = 0; i < _vulkanContext._vulkanSwapChain._framebuffers.size(); ++i) {
+        _vulkanContext._vulkanSwapChain._framebuffers[i].shutdown();
+    }
+
     createFramebuffers();
     
     _framebufferResized = false;
@@ -570,7 +550,6 @@ b8 mtVulkanBackend::renderBegin() {
     VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame].getCommandBufferContext()->_commandBuffer;
 
     vkResetCommandBuffer(commandBuffer, 0);
-
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -583,13 +562,20 @@ b8 mtVulkanBackend::renderBegin() {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = _renderPass;
-    renderPassInfo.framebuffer = _swapChainFramebuffers[_vulkanContext._vulkanSwapChain._imageIndex];
+    renderPassInfo.framebuffer = _vulkanContext._vulkanSwapChain._framebuffers[_vulkanContext._vulkanSwapChain._imageIndex]._handler;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = {_vulkanContext._width, _vulkanContext._height};
 
-    VkClearValue clearColor = {{{0.0f, 0.0f, 1.0f, 1.0f}}};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+
+    VkClearValue clearColor[2]; //= {{{0.0f, 0.0f, 1.0f, 1.0f}}};
+    clearColor[0].color.float32[0] = 0.0f;
+    clearColor[0].color.float32[1] = 0.0f;
+    clearColor[0].color.float32[2] = 0.2f;
+    clearColor[0].color.float32[3] = 1.0f;
+    clearColor[1].depthStencil.depth = 0.0f;
+    clearColor[1].depthStencil.stencil = 0.0f;
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = clearColor;
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     return true;

@@ -11,7 +11,7 @@ public:
     mtVulkanImage();
     ~mtVulkanImage();
 
-    b8 create(mtVulkanContext* pVulkanContext,
+    b8 initialize(mtVulkanContext* pVulkanContext,
                 u32 width,
                 u32 height,
                 VkFormat format,
@@ -19,13 +19,17 @@ public:
                 VkImageUsageFlags usage,
                 VkMemoryPropertyFlags properties,
                 b8 createView,
+                VkImageAspectFlags viewAspectFlags,
                 u32 mipLevels);
 
-    void free();
+    void shutdown();
 
 
     // mtVkImageContext* getImageContext() { return &_imageContext; }
-private:
+protected:
+    friend class mtVulkanBackend;
+    friend class mtVulkanSwapChain;
+
     mtVulkanContext* _pVulkanContext;
     // mtVkImageContext _imageContext;
     VkImage _image;

@@ -9,10 +9,10 @@ mtVulkanImage::mtVulkanImage()
 }
 
 mtVulkanImage::~mtVulkanImage() {
-    free();
+    shutdown();
 }
 
-b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
+b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
                             u32 width,
                             u32 height,
                             VkFormat format,
@@ -20,6 +20,7 @@ b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
                             VkImageUsageFlags usage,
                             VkMemoryPropertyFlags properties,
                             b8 createView,
+                            VkImageAspectFlags viewAspectFlags,
                             u32 mipLevels) {
     _pVulkanContext = pVulkanContext;
     if (mipLevels < 1) {
@@ -74,7 +75,7 @@ b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
         viewInfo.image = _image;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format = format;
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.aspectMask = viewAspectFlags;
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = mipLevels;
         viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -87,7 +88,7 @@ b8 mtVulkanImage::create(mtVulkanContext* pVulkanContext,
     return true;
 }
 
-void mtVulkanImage::free() {
+void mtVulkanImage::shutdown() {
     VkDevice device = _pVulkanContext->getVulkanDevice()->_logicDevice;
     if (_imageView) {
         vkDestroyImageView(device, _imageView, 0);

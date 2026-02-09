@@ -7,6 +7,7 @@
 #include "render/vulkan/vulkan_device.h"
 #include "render/vulkan/vulkan_swapchain.h"
 #include "render/vulkan/vulkan_command_buffer.h"
+#include "render/vulkan/vulkan_renderpass.h"
 #include "core/std_wrapper.h"
 
 
@@ -27,6 +28,7 @@ protected:
     friend class mtVulkanBackend;
     friend class mtVulkanDevice;
     friend class mtVulkanSwapChain;
+    friend class mtVulkanFrameBuffer;
     // mtVkContext _context;
     mtVulkanDevice _vulkanDevice;
     mtVulkanSwapChain _vulkanSwapChain;
@@ -49,6 +51,8 @@ protected:
     mtVector<VkSemaphore> _imageAvailableSemaphores;
     mtVector<VkSemaphore> _renderFinishedSemaphores;
     mtVector<VkFence> _inFlightFences;
+
+    mtVulkanRenderPass _mainRenderPass;
 
     u32 _currentFrame;
 };

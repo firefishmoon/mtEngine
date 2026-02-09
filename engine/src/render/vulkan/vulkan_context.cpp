@@ -154,6 +154,7 @@ b8 mtVulkanContext::initialize() {
     _vulkanSwapChain.initialize(this, data->wndWidth, data->wndHeight);
     
 
+    // semaphores & fences
     u32 MAX_FRAMES_IN_FLIGHT = _vulkanSwapChain._imageCount;
 
     _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -174,6 +175,12 @@ b8 mtVulkanContext::initialize() {
             MT_LOG_ERROR("Failed to create sync objects");
             return false;
         }
+    }
+
+    // command buffer
+    _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    for (auto& cmdBuffer : _commandBuffers) {
+        cmdBuffer.initialize(this, true);
     }
 
     MT_LOG_INFO("Vulkan Context Initialized");

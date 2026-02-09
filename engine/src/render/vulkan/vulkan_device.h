@@ -31,6 +31,7 @@ public:
     mtVulkanContext* getContext() { return _context; }
 
     // mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
+    b8 detectDepthFormat();
 
     s32 findMemoryType(u32 typeFilter, u32 propertyFlags);
 private:
@@ -42,6 +43,7 @@ protected:
     friend class mtVulkanCommandBuffer;
     friend class mtVulkanImage;
     friend class mtVulkanBackend;
+    friend class mtVulkanFrameBuffer;
     // mtVkDeviceContext _deviceContext;
     mtVulkanContext* _context;
 
@@ -53,6 +55,7 @@ protected:
     VkQueue _presentQueue;
     VkQueue _transferQueue;
     VkCommandPool _graphicsCommandPool;
+    VkFormat _depthFormat;
 
     u32 _graphicsFamilyIndex = -1;
     u32 _presentFamilyIndex = -1;

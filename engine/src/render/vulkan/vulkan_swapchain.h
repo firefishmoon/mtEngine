@@ -3,6 +3,8 @@
 #include "defines.h"
 #include <vulkan/vulkan.h>
 #include "core/std_wrapper.h"
+#include "vulkan_image.h"
+#include "vulkan_framebuffer.h"
 
 // struct mtVkSwapChainContext {
 //     
@@ -53,4 +55,7 @@ protected:
     u32 _imageIndex;
     mtVector<VkImage> _swapChainImages;
     mtVector<VkImageView> _swapChainImageViews;
+    mtVector<mtVulkanFrameBuffer> _framebuffers;
+
+    mtVulkanImage _depthAttachment;
 };

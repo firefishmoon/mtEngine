@@ -14,21 +14,9 @@ message(STATUS "glfw3_DIR = ${glfw3_DIR}")
 find_package(glfw3 CONFIG REQUIRED)
 find_package (Vulkan REQUIRED)
 
+file(GLOB_RECURSE MTEngine_SOURCES CONFIGURE_DEPENDS "*.cpp")
 # Find glslc shader compiler
-add_library(mtengine SHARED 
-    ./core/loggersystem.cpp
-    ./core/memorysystem.cpp
-    ./core/eventsystem.cpp
-    ./core/jobsystem.cpp
-    ./core/application.cpp
-    ./render/vulkan/vulkan_backend.cpp
-    ./render/vulkan/vulkan_context.cpp
-    ./render/vulkan/vulkan_device.cpp
-    ./render/vulkan/vulkan_swapchain.cpp
-    ./render/vulkan/vulkan_command_buffer.cpp
-    ./render/vulkan/vulkan_image.cpp
-    ./render/rendersystem.cpp
-)
+add_library(mtengine SHARED ${MTEngine_SOURCES})
 
 # When building the shared library we must export symbols (on Windows use dllexport).
 # Define MT_EXPORTS for compilation of the mtengine target so MT_API expands to __declspec(dllexport).

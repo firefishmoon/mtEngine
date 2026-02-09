@@ -77,9 +77,10 @@ def do_config(c):
         f"-DCMAKE_TOOLCHAIN_FILE={str(VCPKG_TOOLCHAIN)}",
     ]
     if sys.platform == 'win32':
-        cmd.append("-G \"MinGW Makefiles\"")
-        cmd.append("-DCMAKE_CXX_COMPILER=g++")
-        cmd.append("-DCMAKE_MAKE_PROGRAM=mingw32-make")
+        # cmd.append("-G \"MinGW Makefiles\"")
+        cmd.append("-GNinja")
+        # cmd.append("-DCMAKE_CXX_COMPILER=g++")
+        # cmd.append("-DCMAKE_MAKE_PROGRAM=mingw32-make")
     else:
         cmd.append("-GNinja")
 

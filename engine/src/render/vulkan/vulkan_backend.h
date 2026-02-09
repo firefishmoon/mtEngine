@@ -43,63 +43,22 @@ public:
     b8 renderEnd() override;
     b8 renderPresent() override;
     b8 recreateSwapChain();
-    // b8 waitDeviceIdle();
-    
-    // VkDevice getDevice() const { return _device; }
-    // VkPhysicalDevice getPhysicalDevice() const { return _physicalDevice; }
-    // VkQueue getGraphicsQueue() const { return _graphicsQueue; }
-    // VkQueue getPresentQueue() const { return _presentQueue; }
-    // VkSurfaceKHR getSurface() const { return _surface; }
-    // VkInstance getInstance() const { return _instance; }
     
 protected:
-    // b8 pickPhysicalDevice();
-    // b8 isDeviceSuitable(VkPhysicalDevice device);
-    // QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    // b8 createLogicalDevice();
-    // b8 createSwapChain();
     b8 createImageViews();
     b8 createRenderPass();
     b8 createGraphicsPipeline();
     b8 createFramebuffers();
-    // b8 createCommandPool();
-    b8 createCommandBuffers();
-    // b8 createSyncObjects();
     
     
     b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
     
     b8 checkDeviceExtensionSupport(VkPhysicalDevice device);
-    // mtVector<char> readFile(const std::string& filename);
-    // VkShaderModule createShaderModule(const mtVector<char>& code);
 
-    // VkInstance _instance = VK_NULL_HANDLE;
-    // VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
-    // VkDevice _device = VK_NULL_HANDLE;
-    // VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
-    // VkQueue _graphicsQueue = VK_NULL_HANDLE;
-    // VkSurfaceKHR _surface = VK_NULL_HANDLE;
-    // VkQueue _presentQueue = VK_NULL_HANDLE;
-
-    // VkCommandPool _commandPool = VK_NULL_HANDLE;
-    // mtVector<VkCommandBuffer> _commandBuffers;
-
-    // VkSwapchainKHR _swapChain = VK_NULL_HANDLE;
-    // mtVector<VkImage>* _pSwapChainImages;
-    // VkFormat _swapChainImageFormat;
-    // VkExtent2D _swapChainExtent;
-    // mtVector<VkImageView>* _pSwapChainImageViews;
-    mtVector<VkFramebuffer> _swapChainFramebuffers;
+    // mtVector<VkFramebuffer> _swapChainFramebuffers;
 
     VkRenderPass _renderPass = VK_NULL_HANDLE;
-    // VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
-    // VkPipeline _graphicsPipeline = VK_NULL_HANDLE;
 
-    // mtVector<VkSemaphore> _imageAvailableSemaphores;
-    // mtVector<VkSemaphore> _renderFinishedSemaphores;
-    // mtVector<VkFence> _inFlightFences;
-    
-    // u32 _currentFrame = 0;
     b8 _framebufferResized = false;
     
     u32 MAX_FRAMES_IN_FLIGHT = 0;
