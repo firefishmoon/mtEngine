@@ -18,9 +18,10 @@ public:
     void shutdown();
 protected:
     friend class mtVulkanBackend;
+    friend class mtVulkanRenderPass;
 
     mtVulkanContext *_context;
-    VkFramebuffer _handler;
+    VkFramebuffer _handle;
     u32 _attachmentCount;
     mtVector<VkImageView> _attachments;
     mtVulkanRenderPass* _renderpass;

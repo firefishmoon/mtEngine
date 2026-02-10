@@ -85,7 +85,7 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
         device,
         &swapchainCreateInfo,
         nullptr,
-        &_handler
+        &_handle
     );
     if (result != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create swapchain! VkResult: {}", static_cast<int>(result));
@@ -96,14 +96,14 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
     _imageCount = 0;
     vkGetSwapchainImagesKHR(
         device,
-        _handler,
+        _handle,
         &_imageCount,
         0 
     );
     _swapChainImages.resize(_imageCount);
     vkGetSwapchainImagesKHR(
         device,
-        _handler,
+        _handle,
         &_imageCount,
         _swapChainImages.data()
     );
@@ -172,13 +172,13 @@ b8 mtVulkanSwapChain::shutdown() {
 
     _depthAttachment.shutdown();
 
-    if (_handler != VK_NULL_HANDLE) {
+    if (_handle != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(
             _context->getVulkanDevice()->_logicDevice,
-            _handler,
+            _handle,
             nullptr
         );
-        _handler = VK_NULL_HANDLE;
+        _handle = VK_NULL_HANDLE;
     }
     return true;
 }
@@ -196,7 +196,7 @@ b8 mtVulkanSwapChain::recreate(u32 width, u32 height) {
 }
 
 b8 mtVulkanSwapChain::represent() {
-    VkSwapchainKHR swapChain = _handler;
+    VkSwapchainKHR swapChain = _handle;
 
     VkSemaphore signalSemaphores[] = {_context->_renderFinishedSemaphores[_context->_currentFrame]};
     VkPresentInfoKHR presentInfo{};

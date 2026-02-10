@@ -34,15 +34,12 @@ b8 mtVulkanBackend::initialize() {
     MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->_imageCount;
 
 
-    if (!createRenderPass()) {
-        MT_LOG_ERROR("Failed to create render pass!");
-        return false;
-    }
+    // if (!createRenderPass()) {
+    //     MT_LOG_ERROR("Failed to create render pass!");
+    //     return false;
+    // }
     
-    if (!createFramebuffers()) {
-        MT_LOG_ERROR("Failed to create framebuffers!");
-        return false;
-    }
+    
     
     // if (!createCommandBuffers()) {
     //     MT_LOG_ERROR("Failed to create command buffers!");
@@ -53,6 +50,24 @@ b8 mtVulkanBackend::initialize() {
     //     MT_LOG_ERROR("Failed to create sync objects!");
     //     return false;
     // }
+    //
+    _vulkanContext._mainRenderPass.initialize(
+        &_vulkanContext, 
+        0, 
+        0,
+        _vulkanContext._width, 
+        _vulkanContext._height, 
+        0.0f,
+        0.0f, 
+        0.2f, 
+        1.0f, 
+        0.0f,
+        0.0f);
+
+    if (!createFramebuffers()) {
+        MT_LOG_ERROR("Failed to create framebuffers!");
+        return false;
+    }
     
     MT_LOG_INFO("Vulkan Backend Initialized");
 
@@ -63,8 +78,8 @@ b8 mtVulkanBackend::shutdown() {
     // if (_device != VK_NULL_HANDLE) {
     vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
     // }
-    vkDestroyRenderPass(_vulkanContext._vulkanDevice._logicDevice, _renderPass, 0);
-    
+    // vkDestroyRenderPass(_vulkanContext._vulkanDevice._logicDevice, _renderPass, 0);
+   _vulkanContext._mainRenderPass.shutdown(); 
     // _inFlightFences.clear();
     // _renderFinishedSemaphores.clear();
     // _imageAvailableSemaphores.clear();
@@ -160,7 +175,7 @@ b8 mtVulkanBackend::createRenderPass() {
         return false;
     }
     
-    _vulkanContext._mainRenderPass._handler = _renderPass;
+    _vulkanContext._mainRenderPass._handle = _renderPass;
 
     return true;
 }
@@ -334,8 +349,8 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _vulkanContext._mainRenderPass._handler;//_renderPass;
-    renderPassInfo.framebuffer = _vulkanContext._vulkanSwapChain._framebuffers[imageIndex]._handler; //_swapChainFramebuffers[imageIndex];
+    renderPassInfo.renderPass = _vulkanContext._mainRenderPass._handle;//_renderPass;
+    renderPassInfo.framebuffer = _vulkanContext._vulkanSwapChain._framebuffers[imageIndex]._handle; //_swapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = {_vulkanContext._width, _vulkanContext._height};
 
@@ -381,7 +396,7 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 
 // b8 mtVulkanBackend::renderFrame() {
 //     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-//     VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
+//     VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handle;
 //
 //     vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
 //     
@@ -528,7 +543,7 @@ b8 mtVulkanBackend::renderPrepare() {
     }
 
     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-    VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handler;
+    VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handle;
 
     vkWaitForFences(device, 1, &_vulkanContext._inFlightFences[_vulkanContext._currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -550,68 +565,27 @@ b8 mtVulkanBackend::renderPrepare() {
 
 b8 mtVulkanBackend::renderBegin() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame].getCommandBufferContext()->_commandBuffer;
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame];
 
-    vkResetCommandBuffer(commandBuffer, 0);
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    commandBuffer.begin();
+    mtVulkanFrameBuffer& frameBuffer = _vulkanContext._vulkanSwapChain._framebuffers[_vulkanContext._vulkanSwapChain._imageIndex];
 
-    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to begin recording command buffer!");
-        return false;
-    }
+    _vulkanContext._mainRenderPass._w = _vulkanContext._width;
+    _vulkanContext._mainRenderPass._h = _vulkanContext._height;
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _renderPass;
-    renderPassInfo.framebuffer = _vulkanContext._vulkanSwapChain._framebuffers[_vulkanContext._vulkanSwapChain._imageIndex]._handler;
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = {_vulkanContext._width, _vulkanContext._height};
+    _vulkanContext._mainRenderPass.begin(commandBuffer, frameBuffer);
 
-
-    VkClearValue clearColor[2]; //= {{{0.0f, 0.0f, 1.0f, 1.0f}}};
-    clearColor[0].color.float32[0] = 0.0f;
-    clearColor[0].color.float32[1] = 0.0f;
-    clearColor[0].color.float32[2] = 0.2f;
-    clearColor[0].color.float32[3] = 1.0f;
-    clearColor[1].depthStencil.depth = 0.0f;
-    clearColor[1].depthStencil.stencil = 0.0f;
-    renderPassInfo.clearValueCount = 2;
-    renderPassInfo.pClearValues = clearColor;
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    return true;
+    return true; 
 }
 
 b8 mtVulkanBackend::renderEnd() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame].getCommandBufferContext()->_commandBuffer;
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame];
 
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float)_vulkanContext._width;
-    viewport.height = (float)_vulkanContext._height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    _vulkanContext._mainRenderPass.end(commandBuffer);
 
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = {_vulkanContext._width, _vulkanContext._height};
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    commandBuffer.end();
 
-    // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(commandBuffer);
-
-
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to record command buffer!");
-        return false;
-    }
-    
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     
@@ -621,7 +595,7 @@ b8 mtVulkanBackend::renderEnd() {
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
+    submitInfo.pCommandBuffers = &commandBuffer._commandBuffer;
     
     VkSemaphore signalSemaphores[] = {_vulkanContext._renderFinishedSemaphores[_vulkanContext._currentFrame]};
     submitInfo.signalSemaphoreCount = 1;

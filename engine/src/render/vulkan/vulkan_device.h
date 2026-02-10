@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defines.h"
+#include "render/vulkan/vulkan_renderpass.h"
 #include <vulkan/vulkan.h>
 
 class mtVulkanContext;
@@ -47,6 +48,7 @@ protected:
     friend class mtVulkanImage;
     friend class mtVulkanBackend;
     friend class mtVulkanFrameBuffer;
+    friend class mtVulkanRenderPass;
     // mtVkDeviceContext _deviceContext;
     mtVulkanContext* _context;
 

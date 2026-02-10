@@ -26,10 +26,18 @@ public:
     b8 initialize(mtVulkanContext* context, b8 isPrimary);
     b8 shutdown();
 
-    mtVkCommandBufferContext* getCommandBufferContext() { return &_commandBufferCtx; }
+    void begin();
+    void end();
+
+    // mtVkCommandBufferContext* getCommandBufferContext() { return &_commandBufferCtx; }
     // VkCommandBuffer beginSingleTimeCommands();
     // void endSingleTimeCommands(VkDevice device, VkQueue graphicsQueue, VkCommandBuffer commandBuffer);
-private:
+protected:
+    friend class mtVulkanBackend;
+    friend class mtVulkanRenderPass;
+
     mtVulkanContext* _context;
-    mtVkCommandBufferContext _commandBufferCtx;
+    // mtVkCommandBufferContext _commandBufferCtx;
+    VkCommandBuffer _commandBuffer;
+    mtVkCommandBufferState _state;
 };

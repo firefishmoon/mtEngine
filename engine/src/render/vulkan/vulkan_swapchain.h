@@ -42,6 +42,7 @@ public:
 protected:
     friend class mtVulkanBackend;
     friend class mtVulkanContext;
+    friend class mtVulkanRenderPass;
 
     mtVulkanContext* _context;
 
@@ -49,7 +50,7 @@ protected:
     mtVkSwapchainSupportInfo _swapChainSupport;
 
     VkSurfaceFormatKHR _imageFormat;
-    VkSwapchainKHR _handler;
+    VkSwapchainKHR _handle;
     u32 _imageCount;
     b8 _supportsBlitDest;
     b8 _supportsBlitSrc;

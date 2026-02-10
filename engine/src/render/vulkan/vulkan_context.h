@@ -29,6 +29,7 @@ protected:
     friend class mtVulkanDevice;
     friend class mtVulkanSwapChain;
     friend class mtVulkanFrameBuffer;
+    friend class mtVulkanRenderPass;
     // mtVkContext _context;
     mtVulkanDevice _vulkanDevice;
     mtVulkanSwapChain _vulkanSwapChain;
