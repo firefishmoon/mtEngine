@@ -155,7 +155,7 @@ b8 mtVulkanContext::initialize() {
     
 
     // semaphores & fences
-    u32 MAX_FRAMES_IN_FLIGHT = _vulkanSwapChain._imageCount;
+    u32 MAX_FRAMES_IN_FLIGHT = _vulkanSwapChain.getImageCount();
 
     _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -167,7 +167,7 @@ b8 mtVulkanContext::initialize() {
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VkDevice device = _vulkanDevice._logicDevice;
+    VkDevice device = _vulkanDevice.getLogicalDevice();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
@@ -188,15 +188,15 @@ b8 mtVulkanContext::initialize() {
 }
 
 b8 mtVulkanContext::shutdown() {
-    vkDeviceWaitIdle(_vulkanDevice._logicDevice);
+    vkDeviceWaitIdle(_vulkanDevice.getLogicalDevice());
 
     for (auto& commandbuffer : _commandBuffers) {
         commandbuffer.shutdown();
     }
 
 
-    VkDevice device = _vulkanDevice._logicDevice;
-    for (u32 i = 0; i < _vulkanSwapChain._imageCount; ++i) {
+    VkDevice device = _vulkanDevice.getLogicalDevice();
+    for (u32 i = 0; i < _vulkanSwapChain.getImageCount(); ++i) {
         vkDestroySemaphore(device, _imageAvailableSemaphores[i], 0);
         vkDestroySemaphore(device, _renderFinishedSemaphores[i], 0);
         vkDestroyFence(device, _inFlightFences[i], 0);

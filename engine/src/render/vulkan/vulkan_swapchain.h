@@ -37,12 +37,18 @@ public:
 
     b8 represent();
 
-    mtVulkanContext* getContext() { return _context; }
+    inline mtVulkanContext* getContext() { return _context; }
+    inline VkSurfaceFormatKHR getImageFormat() const { return _imageFormat; }
+    inline u32 getImageCount() const { return _imageCount; }
+    inline mtVector<mtVulkanFrameBuffer>& getFramebuffers() { return _framebuffers; }
+    inline VkSwapchainKHR getHandle() const { return _handle; }
+    inline u32 getImageIndex() const { return _imageIndex; }
+    inline void setImageIndex(u32 idx) { _imageIndex = idx; }
+    inline mtVector<VkImageView>& getSwapChainImageViews() { return _swapChainImageViews; }
+    inline mtVulkanImage& getDepthAttachment() { return _depthAttachment; }
     // mtVkSwapChainContext* getSwapChainContext() { return &_swapChainCtx; }
 protected:
-    friend class mtVulkanBackend;
-    friend class mtVulkanContext;
-    friend class mtVulkanRenderPass;
+    // access via public accessors instead of friendship
 
     mtVulkanContext* _context;
 
@@ -61,4 +67,5 @@ protected:
     mtVector<mtVulkanFrameBuffer> _framebuffers;
 
     mtVulkanImage _depthAttachment;
+    
 };

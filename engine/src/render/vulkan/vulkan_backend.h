@@ -36,8 +36,8 @@ public:
     // b8 renderFrame() override;
     b8 onResize(u32 width, u32 height) override {
         _framebufferResized = true;
-        _vulkanContext._width = width;
-        _vulkanContext._height = height;
+        _vulkanContext.setWidth(static_cast<u16>(width));
+        _vulkanContext.setHeight(static_cast<u16>(height));
         return true;
     }
     b8 renderPrepare() override;
@@ -48,7 +48,7 @@ public:
     
 protected:
     b8 createImageViews();
-    b8 createRenderPass();
+    //b8 createRenderPass();
     b8 createGraphicsPipeline();
     b8 createFramebuffers();
     

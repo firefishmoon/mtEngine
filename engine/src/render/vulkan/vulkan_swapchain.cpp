@@ -9,11 +9,11 @@ b8 mtVulkanSwapChain::initialize(mtVulkanContext* context, u32 width, u32 height
 
 b8 mtVulkanSwapChain::create(u32 width, u32 height) {
     mtVulkanDevice* pDevice = _context->getVulkanDevice();
-    VkDevice device = pDevice->_logicDevice;
+    VkDevice device = pDevice->getLogicalDevice();
     VkExtent2D swapchainExtent = {width, height};
 
     pDevice->querySwapChainSupport(
-        _context->_surface, 
+        _context->getSurface(),
         &_swapChainSupport
     );
 
@@ -54,18 +54,18 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
 
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainCreateInfo.surface = _context->_surface;
+    swapchainCreateInfo.surface = _context->getSurface();
     swapchainCreateInfo.minImageCount = desiredImageCount;
     swapchainCreateInfo.imageFormat = _imageFormat.format;
     swapchainCreateInfo.imageExtent = swapchainExtent;
     swapchainCreateInfo.imageArrayLayers = 1;
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    if (pDevice->_graphicsFamilyIndex != 
-        pDevice->_presentFamilyIndex) {
+    if (pDevice->getGraphicsFamilyIndex() != 
+        pDevice->getPresentFamilyIndex()) {
         u32 queueFamilyIndices[] = {
-            pDevice->_graphicsFamilyIndex,
-            pDevice->_presentFamilyIndex
+            pDevice->getGraphicsFamilyIndex(),
+            pDevice->getPresentFamilyIndex()
         };
         swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapchainCreateInfo.queueFamilyIndexCount = 2;
@@ -137,16 +137,16 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
         }
     }
 
-    if (!_context->getVulkanDevice()->detectDepthFormat()) {
+    if (!pDevice->detectDepthFormat()) {
         MT_LOG_FATAL("VulkanDevice detectDepthFormat Failed");
         return false;
     }
 
     _depthAttachment.initialize(
         _context, 
-        _context->_width, 
-        _context->_height, 
-        _context->getVulkanDevice()->_depthFormat, 
+        _context->getWidth(), 
+        _context->getHeight(), 
+        pDevice->getDepthFormat(), 
         VK_IMAGE_TILING_OPTIMAL, 
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
@@ -162,8 +162,8 @@ b8 mtVulkanSwapChain::create(u32 width, u32 height) {
 }
 
 b8 mtVulkanSwapChain::shutdown() {
-    VkDevice device = _context->getVulkanDevice()->_logicDevice;
-    vkDeviceWaitIdle(_context->getVulkanDevice()->_logicDevice);
+    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    vkDeviceWaitIdle(_context->getVulkanDevice()->getLogicalDevice());
 
     for (size_t i = 0; i < _imageCount; i++) {
         vkDestroyImageView(device, _swapChainImageViews[i], 0);
@@ -174,7 +174,7 @@ b8 mtVulkanSwapChain::shutdown() {
 
     if (_handle != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(
-            _context->getVulkanDevice()->_logicDevice,
+            _context->getVulkanDevice()->getLogicalDevice(),
             _handle,
             nullptr
         );
@@ -198,7 +198,7 @@ b8 mtVulkanSwapChain::recreate(u32 width, u32 height) {
 b8 mtVulkanSwapChain::represent() {
     VkSwapchainKHR swapChain = _handle;
 
-    VkSemaphore signalSemaphores[] = {_context->_renderFinishedSemaphores[_context->_currentFrame]};
+    VkSemaphore signalSemaphores[] = { _context->getRenderFinishedSemaphores()[ _context->getCurrentFrame() ] };
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
@@ -209,17 +209,17 @@ b8 mtVulkanSwapChain::represent() {
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &_imageIndex;
     
-    VkResult result = vkQueuePresentKHR(_context->_vulkanDevice._presentQueue, &presentInfo);
+    VkResult result = vkQueuePresentKHR(_context->getVulkanDevice()->getPresentQueue(), &presentInfo);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         // _framebufferResized = false;
         // return recreateSwapChain();
-        return recreate(_context->_width, _context->_height);
+        return recreate(_context->getWidth(), _context->getHeight());
     } else if (result != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to present swap chain image!");
         return false;
     }
     
-    _context->_currentFrame = (_context->_currentFrame + 1) % _imageCount;
+    _context->setCurrentFrame((_context->getCurrentFrame() + 1) % _imageCount);
     return true;
 }

@@ -21,15 +21,27 @@ public:
 
     // VkInstance getInstance() const { return _instance; }
     // mtVkContext* getVkContext() { return &_context; }
-    mtVulkanDevice* getVulkanDevice() { return &_vulkanDevice; }
-    mtVulkanSwapChain* getVulkanSwapChain() { return &_vulkanSwapChain; }
-    mtVector<mtVulkanCommandBuffer>* getVulkanCommandBuffers() { return &_commandBuffers; }
+    inline mtVulkanDevice* getVulkanDevice() { return &_vulkanDevice; }
+    inline mtVulkanSwapChain* getVulkanSwapChain() { return &_vulkanSwapChain; }
+    inline mtVector<mtVulkanCommandBuffer>* getVulkanCommandBuffers() { return &_commandBuffers; }
+
+    // Accessors to reduce direct member access from friends
+    inline VkSurfaceKHR getSurface() const { return _surface; }
+    inline VkInstance getInstance() const { return _instance; }
+    inline b8 isDebugEnabled() const { return _enableDebug; }
+    inline u16 getWidth() const { return _width; }
+    inline u16 getHeight() const { return _height; }
+    inline u32 getCurrentFrame() const { return _currentFrame; }
+    void setCurrentFrame(u32 frame) { _currentFrame = frame; }
+    void setWidth(u16 w) { _width = w; }
+    void setHeight(u16 h) { _height = h; }
+
+    inline mtVector<VkSemaphore>& getImageAvailableSemaphores() { return _imageAvailableSemaphores; }
+    inline mtVector<VkSemaphore>& getRenderFinishedSemaphores() { return _renderFinishedSemaphores; }
+    inline mtVector<VkFence>& getInFlightFences() { return _inFlightFences; }
+    inline mtVulkanRenderPass* getMainRenderPass() { return &_mainRenderPass; }
 protected:
-    friend class mtVulkanBackend;
     friend class mtVulkanDevice;
-    friend class mtVulkanSwapChain;
-    friend class mtVulkanFrameBuffer;
-    friend class mtVulkanRenderPass;
     // mtVkContext _context;
     mtVulkanDevice _vulkanDevice;
     mtVulkanSwapChain _vulkanSwapChain;

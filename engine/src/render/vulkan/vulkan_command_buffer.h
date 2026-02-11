@@ -33,11 +33,12 @@ public:
     // VkCommandBuffer beginSingleTimeCommands();
     // void endSingleTimeCommands(VkDevice device, VkQueue graphicsQueue, VkCommandBuffer commandBuffer);
 protected:
-    friend class mtVulkanBackend;
-    friend class mtVulkanRenderPass;
+    // access via public accessors instead of friendship
 
     mtVulkanContext* _context;
     // mtVkCommandBufferContext _commandBufferCtx;
     VkCommandBuffer _commandBuffer;
     mtVkCommandBufferState _state;
+public:
+    inline VkCommandBuffer getCommandBuffer() const { return _commandBuffer; }
 };

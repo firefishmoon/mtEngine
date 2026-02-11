@@ -25,11 +25,12 @@ public:
 
     void shutdown();
 
+    inline VkImageView getImageView() const { return _imageView; }
+
 
     // mtVkImageContext* getImageContext() { return &_imageContext; }
 protected:
-    friend class mtVulkanBackend;
-    friend class mtVulkanSwapChain;
+    // access via public accessors instead of friendship
 
     mtVulkanContext* _pVulkanContext;
     // mtVkImageContext _imageContext;

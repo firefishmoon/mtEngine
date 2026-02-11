@@ -32,7 +32,19 @@ public:
 
     void querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSupportInfo* outSupportInfo);
 
-    mtVulkanContext* getContext() { return _context; }
+    inline mtVulkanContext* getContext() { return _context; }
+
+    // Accessors to avoid friend-based direct member access
+    inline VkCommandPool getGraphicsCommandPool() const { return _graphicsCommandPool; }
+    inline VkDevice getLogicalDevice() const { return _logicDevice; }
+    inline VkQueue getPresentQueue() const { return _presentQueue; }
+    inline VkQueue getGraphicsQueue() const { return _graphicsQueue; }
+    inline VkQueue getTransferQueue() const { return _transferQueue; }
+    inline VkFormat getDepthFormat() const { return _depthFormat; }
+
+    inline u32 getGraphicsFamilyIndex() const { return _graphicsFamilyIndex; }
+    inline u32 getPresentFamilyIndex() const { return _presentFamilyIndex; }
+    inline u32 getTransferFamilyIndex() const { return _transferFamilyIndex; }
 
     // mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
     b8 detectDepthFormat();
@@ -43,12 +55,6 @@ private:
     // b8 isDeviceSuitable(VkPhysicalDevice device);
 protected:
     friend class mtVulkanContext;
-    friend class mtVulkanSwapChain;
-    friend class mtVulkanCommandBuffer;
-    friend class mtVulkanImage;
-    friend class mtVulkanBackend;
-    friend class mtVulkanFrameBuffer;
-    friend class mtVulkanRenderPass;
     // mtVkDeviceContext _deviceContext;
     mtVulkanContext* _context;
 

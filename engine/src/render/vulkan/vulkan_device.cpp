@@ -80,7 +80,7 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan
 
 b8 mtVulkanDevice::selectPhysicalDevice() {
     u32 deviceCount = 0;
-    VkInstance instance = _context->_instance;
+    VkInstance instance = _context->getInstance();
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
         MT_LOG_FATAL("Failed to find GPUs with Vulkan support!");
@@ -92,7 +92,7 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
 
     vulkan_physical_device_queue_family_info queueFamilyInfo = {-1, -1, -1, -1};
     for (const auto& device : devices) {
-        if (isDeviceSuitable(device, _context->_surface, &queueFamilyInfo)) {
+        if (isDeviceSuitable(device, _context->getSurface(), &queueFamilyInfo)) {
             _physicalDevice = device;
             break;
         }
@@ -135,7 +135,7 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (_context->_enableDebug) {
+    if (_context->isDebugEnabled()) {
         mtVector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();

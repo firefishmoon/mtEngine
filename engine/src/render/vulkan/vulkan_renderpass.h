@@ -9,6 +9,9 @@ class mtVulkanCommandBuffer;
 
 class mtVulkanRenderPass {
 public:
+    inline VkRenderPass getHandle() const { return _handle; }
+    //void setHandle(VkRenderPass handle) { _handle = handle; }
+    void setExtent(u32 w, u32 h) { _w = (f32)w; _h = (f32)h; }
     b8 initialize(mtVulkanContext* context,
                   f32 x, f32 y, f32 w, f32 h,
                   f32 r, f32 g, f32 b, f32 a,
@@ -20,8 +23,7 @@ public:
     void end(mtVulkanCommandBuffer& commandBuffer);
 
 protected:
-    friend class mtVulkanFrameBuffer;
-    friend class mtVulkanBackend;
+    // access via public accessors instead of friendship
     VkRenderPass _handle;
 
     mtVulkanContext* _context;

@@ -5,8 +5,8 @@
 
 b8 mtVulkanCommandBuffer::initialize(mtVulkanContext* context, b8 isPrimary) {
     _context = context;
-    VkCommandPool commandPool = _context->getVulkanDevice()->_graphicsCommandPool;
-    VkDevice device = _context->getVulkanDevice()->_logicDevice;
+    VkCommandPool commandPool = _context->getVulkanDevice()->getGraphicsCommandPool();
+    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = commandPool;
@@ -24,8 +24,8 @@ b8 mtVulkanCommandBuffer::initialize(mtVulkanContext* context, b8 isPrimary) {
 
 b8 mtVulkanCommandBuffer::shutdown() {
     vkFreeCommandBuffers(
-        _context->getVulkanDevice()->_logicDevice,
-        _context->getVulkanDevice()->_graphicsCommandPool,
+        _context->getVulkanDevice()->getLogicalDevice(),
+        _context->getVulkanDevice()->getGraphicsCommandPool(),
         1,
         &_commandBuffer
     );

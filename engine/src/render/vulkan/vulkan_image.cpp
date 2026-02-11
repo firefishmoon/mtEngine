@@ -41,7 +41,7 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkDevice device = _pVulkanContext->getVulkanDevice()->_logicDevice;
+    VkDevice device = _pVulkanContext->getVulkanDevice()->getLogicalDevice();
 
     if (vkCreateImage(device, &imageInfo, nullptr, &_image) != VK_SUCCESS) {
         return false;
@@ -55,7 +55,7 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
     allocInfo.allocationSize = _memoryRequirments.size;
     allocInfo.memoryTypeIndex = _pVulkanContext->getVulkanDevice()->findMemoryType(_memoryRequirments.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(_pVulkanContext->getVulkanDevice()->_logicDevice, &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
+    if (vkAllocateMemory(_pVulkanContext->getVulkanDevice()->getLogicalDevice(), &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
         return false;
     }
 
@@ -86,7 +86,7 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
 }
 
 void mtVulkanImage::shutdown() {
-    VkDevice device = _pVulkanContext->getVulkanDevice()->_logicDevice;
+    VkDevice device = _pVulkanContext->getVulkanDevice()->getLogicalDevice();
     if (_imageView) {
         vkDestroyImageView(device, _imageView, 0);
         _imageView = 0;

@@ -25,7 +25,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
     VkAttachmentDescription attachment_descriptions[attachment_description_count];
 
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = _context->_vulkanSwapChain._imageFormat.format;
+    colorAttachment.format = _context->getVulkanSwapChain()->getImageFormat().format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -55,7 +55,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
 
 
     VkAttachmentDescription depth_attachment = {};
-    depth_attachment.format = _context->_vulkanDevice._depthFormat;
+    depth_attachment.format = _context->getVulkanDevice()->getDepthFormat();
     depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -81,7 +81,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    VkDevice device = _context->_vulkanDevice._logicDevice;
+    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_handle) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create render pass");
         return false;
@@ -91,7 +91,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
 }
 
 b8 mtVulkanRenderPass::shutdown() {
-    vkDestroyRenderPass(_context->_vulkanDevice._logicDevice, _handle, 0);
+    vkDestroyRenderPass(_context->getVulkanDevice()->getLogicalDevice(), _handle, 0);
     return true;
 }
 
@@ -99,7 +99,7 @@ void mtVulkanRenderPass::begin(mtVulkanCommandBuffer& commandBuffer, mtVulkanFra
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = _handle;
-    renderPassInfo.framebuffer = frameBuffer._handle; //_swapChainFramebuffers[imageIndex];
+    renderPassInfo.framebuffer = frameBuffer.getHandle(); //_swapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {(s32)_x, (s32)_y};
     renderPassInfo.renderArea.extent = {(u32)_w, (u32)_h};
 
@@ -113,9 +113,9 @@ void mtVulkanRenderPass::begin(mtVulkanCommandBuffer& commandBuffer, mtVulkanFra
     renderPassInfo.clearValueCount = 2;
     renderPassInfo.pClearValues = clearColor;
 
-    vkCmdBeginRenderPass(commandBuffer._commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer.getCommandBuffer(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void mtVulkanRenderPass::end(mtVulkanCommandBuffer& commandBuffer) {
-    vkCmdEndRenderPass(commandBuffer._commandBuffer);
+    vkCmdEndRenderPass(commandBuffer.getCommandBuffer());
 }

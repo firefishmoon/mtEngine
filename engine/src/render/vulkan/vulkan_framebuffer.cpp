@@ -16,14 +16,14 @@ b8 mtVulkanFrameBuffer::initialize(mtVulkanContext* context,
     _renderpass = renderpass;
 
     VkFramebufferCreateInfo createInfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
-    createInfo.renderPass = renderpass->_handle;
+    createInfo.renderPass = renderpass->getHandle();
     createInfo.attachmentCount = _attachments.size();
     createInfo.pAttachments = _attachments.data();
     createInfo.width = width;
     createInfo.height = height;
     createInfo.layers = 1;
 
-    VK_CHECK(vkCreateFramebuffer(_context->_vulkanDevice._logicDevice,
+    VK_CHECK(vkCreateFramebuffer(_context->getVulkanDevice()->getLogicalDevice(),
                                  &createInfo, 
                                  0, 
                                  &_handle));
@@ -32,7 +32,7 @@ b8 mtVulkanFrameBuffer::initialize(mtVulkanContext* context,
 }
 
 void mtVulkanFrameBuffer::shutdown() {
-    vkDestroyFramebuffer(_context->_vulkanDevice._logicDevice, _handle, 0);
+    vkDestroyFramebuffer(_context->getVulkanDevice()->getLogicalDevice(), _handle, 0);
     _handle = 0;
     _attachments.clear();
     _renderpass = 0;

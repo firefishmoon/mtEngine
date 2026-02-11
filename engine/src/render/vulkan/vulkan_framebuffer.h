@@ -16,9 +16,9 @@ public:
                   mtVector<VkImageView>& attachments);
 
     void shutdown();
+    VkFramebuffer getHandle() const { return _handle; }
 protected:
-    friend class mtVulkanBackend;
-    friend class mtVulkanRenderPass;
+    // access via public accessors instead of friendship
 
     mtVulkanContext *_context;
     VkFramebuffer _handle;

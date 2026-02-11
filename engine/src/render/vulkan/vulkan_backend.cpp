@@ -31,7 +31,7 @@ b8 mtVulkanBackend::initialize() {
         return false;
     }
     
-    MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->_imageCount;
+    MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->getImageCount();
 
 
     // if (!createRenderPass()) {
@@ -51,16 +51,16 @@ b8 mtVulkanBackend::initialize() {
     //     return false;
     // }
     //
-    _vulkanContext._mainRenderPass.initialize(
-        &_vulkanContext, 
-        0, 
+    _vulkanContext.getMainRenderPass()->initialize(
+        &_vulkanContext,
         0,
-        _vulkanContext._width, 
-        _vulkanContext._height, 
+        0,
+        _vulkanContext.getWidth(),
+        _vulkanContext.getHeight(),
         0.0f,
-        0.0f, 
-        0.2f, 
-        1.0f, 
+        0.0f,
+        0.2f,
+        1.0f,
         0.0f,
         0.0f);
 
@@ -75,11 +75,8 @@ b8 mtVulkanBackend::initialize() {
 }
 
 b8 mtVulkanBackend::shutdown() {
-    // if (_device != VK_NULL_HANDLE) {
-    vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
-    // }
-    // vkDestroyRenderPass(_vulkanContext._vulkanDevice._logicDevice, _renderPass, 0);
-   _vulkanContext._mainRenderPass.shutdown(); 
+    vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
+    _vulkanContext.getMainRenderPass()->shutdown(); 
     // _inFlightFences.clear();
     // _renderFinishedSemaphores.clear();
     // _imageAvailableSemaphores.clear();
@@ -108,77 +105,77 @@ b8 mtVulkanBackend::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 
-b8 mtVulkanBackend::createRenderPass() {
-    const u32 attachment_description_count = 2;
-    VkAttachmentDescription attachment_descriptions[attachment_description_count];
+// b8 mtVulkanBackend::createRenderPass() {
+//     const u32 attachment_description_count = 2;
+//     VkAttachmentDescription attachment_descriptions[attachment_description_count];
 
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = _vulkanContext._vulkanSwapChain._imageFormat.format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+//     VkAttachmentDescription colorAttachment{};
+//     colorAttachment.format = _vulkanContext.getVulkanSwapChain()->getImageFormat().format;
+//     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+//     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+//     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+//     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+//     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+//     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+//     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    attachment_descriptions[0] = colorAttachment;
+//     attachment_descriptions[0] = colorAttachment;
 
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+//     VkAttachmentReference colorAttachmentRef{};
+//     colorAttachmentRef.attachment = 0;
+//     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+//     VkSubpassDescription subpass{};
+//     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+//     subpass.colorAttachmentCount = 1;
+//     subpass.pColorAttachments = &colorAttachmentRef;
 
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+//     VkSubpassDependency dependency{};
+//     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+//     dependency.dstSubpass = 0;
+//     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+//     dependency.srcAccessMask = 0;
+//     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+//     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 
 
-    VkAttachmentDescription depth_attachment = {};
-    depth_attachment.format = _vulkanContext._vulkanDevice._depthFormat;
-    depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+//     VkAttachmentDescription depth_attachment = {};
+//     depth_attachment.format = _vulkanContext.getVulkanDevice()->getDepthFormat();
+//     depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+//     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+//     depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+//     depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+//     depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+//     depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+//     depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    attachment_descriptions[1] = depth_attachment;
+//     attachment_descriptions[1] = depth_attachment;
 
-    VkAttachmentReference depth_attachment_reference;
-    depth_attachment_reference.attachment = 1;
-    depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+//     VkAttachmentReference depth_attachment_reference;
+//     depth_attachment_reference.attachment = 1;
+//     depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    subpass.pDepthStencilAttachment = &depth_attachment_reference;
+//     subpass.pDepthStencilAttachment = &depth_attachment_reference;
 
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 2;
-    renderPassInfo.pAttachments = attachment_descriptions;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
+//     VkRenderPassCreateInfo renderPassInfo{};
+//     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+//     renderPassInfo.attachmentCount = 2;
+//     renderPassInfo.pAttachments = attachment_descriptions;
+//     renderPassInfo.subpassCount = 1;
+//     renderPassInfo.pSubpasses = &subpass;
+//     renderPassInfo.dependencyCount = 1;
+//     renderPassInfo.pDependencies = &dependency;
 
-    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to create render pass");
-        return false;
-    }
+//     VkDevice device = _vulkanContext.getVulkanDevice()->getLogicalDevice();
+//     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
+//         MT_LOG_ERROR("Failed to create render pass");
+//         return false;
+//     }
     
-    _vulkanContext._mainRenderPass._handle = _renderPass;
+//     _vulkanContext.getMainRenderPass()->setHandle(_renderPass);
 
-    return true;
-}
+//     return true;
+// }
 
 // b8 mtVulkanBackend::createGraphicsPipeline() {
 //     auto vertShaderCode = readFile("engine/shaders/compiled/vert.spv");
@@ -304,31 +301,17 @@ b8 mtVulkanBackend::createRenderPass() {
 b8 mtVulkanBackend::createFramebuffers() {
     // _swapChainFramebuffers.resize(_vulkanContext._vulkanSwapChain._swapChainImageViews.size());
 
-    for (size_t i = 0; i < _vulkanContext._vulkanSwapChain._swapChainImageViews.size(); i++) {
-        // VkImageView attachments[] = {_vulkanContext._vulkanSwapChain._swapChainImageViews[i]};
+    for (size_t i = 0; i < _vulkanContext.getVulkanSwapChain()->getSwapChainImageViews().size(); i++) {
         mtVector<VkImageView> vector = {
-            _vulkanContext._vulkanSwapChain._swapChainImageViews[i],
-            _vulkanContext._vulkanSwapChain._depthAttachment._imageView
+            _vulkanContext.getVulkanSwapChain()->getSwapChainImageViews()[i],
+            _vulkanContext.getVulkanSwapChain()->getDepthAttachment().getImageView()
         };
 
-        // VkFramebufferCreateInfo framebufferInfo{};
-        // framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        // framebufferInfo.renderPass = _renderPass;
-        // framebufferInfo.attachmentCount = 1;
-        // framebufferInfo.pAttachments = attachments;
-        // framebufferInfo.width = _vulkanContext._width;
-        // framebufferInfo.height = _vulkanContext._height;
-        // framebufferInfo.layers = 1;
-        //
-        // if (vkCreateFramebuffer(_vulkanContext._vulkanDevice._logicDevice, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
-        //     MT_LOG_ERROR("Failed to create framebuffer");
-        //     return false;
-        // }
-        _vulkanContext._vulkanSwapChain._framebuffers[i].initialize(
-            &_vulkanContext,                                                         
-            &_vulkanContext._mainRenderPass, 
-            _vulkanContext._width, 
-            _vulkanContext._height, 
+        _vulkanContext.getVulkanSwapChain()->getFramebuffers()[i].initialize(
+            &_vulkanContext,
+            _vulkanContext.getMainRenderPass(),
+            _vulkanContext.getWidth(),
+            _vulkanContext.getHeight(),
             vector);
     }
 
@@ -349,10 +332,10 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _vulkanContext._mainRenderPass._handle;//_renderPass;
-    renderPassInfo.framebuffer = _vulkanContext._vulkanSwapChain._framebuffers[imageIndex]._handle; //_swapChainFramebuffers[imageIndex];
+    renderPassInfo.renderPass = _vulkanContext.getMainRenderPass()->getHandle();
+    renderPassInfo.framebuffer = _vulkanContext.getVulkanSwapChain()->getFramebuffers()[imageIndex].getHandle();
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = {_vulkanContext._width, _vulkanContext._height};
+    renderPassInfo.renderArea.extent = {_vulkanContext.getWidth(), _vulkanContext.getHeight()};
 
     VkClearValue clearColor[2]; //= {{{0.0f, 0.0f, 1.0f, 1.0f}}};
     clearColor[0].color.float32[0] = 0.0f;
@@ -468,14 +451,14 @@ b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 image
 // }
 
 b8 mtVulkanBackend::recreateSwapChain() {
-    vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
+    vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
 
-    if (!_vulkanContext.getVulkanSwapChain()->recreate(_vulkanContext._width, _vulkanContext._height)) {
+    if (!_vulkanContext.getVulkanSwapChain()->recreate(_vulkanContext.getWidth(), _vulkanContext.getHeight())) {
         MT_LOG_ERROR("VulkanBackend recreateSwapChain fail.");
         return false;
     }
-    for (u32 i = 0; i < _vulkanContext._vulkanSwapChain._framebuffers.size(); ++i) {
-        _vulkanContext._vulkanSwapChain._framebuffers[i].shutdown();
+    for (u32 i = 0; i < _vulkanContext.getVulkanSwapChain()->getFramebuffers().size(); ++i) {
+        _vulkanContext.getVulkanSwapChain()->getFramebuffers()[i].shutdown();
     }
 
     createFramebuffers();
@@ -527,12 +510,10 @@ b8 mtVulkanBackend::recreateSwapChain() {
 b8 mtVulkanBackend::renderPrepare() {
     // If a resize was requested, recreate the swap chain before acquiring an image
     if (_framebufferResized) {
-        // wait for device idle to ensure resources are not in use
-        vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
+        vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
 
-        // handle minimized window (width/height can be zero)
-        if (_vulkanContext._width == 0 || _vulkanContext._height == 0) {
-            return false; // skip rendering until non-zero
+        if (_vulkanContext.getWidth() == 0 || _vulkanContext.getHeight() == 0) {
+            return false;
         }
 
         _framebufferResized = false;
@@ -542,66 +523,66 @@ b8 mtVulkanBackend::renderPrepare() {
         }
     }
 
-    VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-    VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handle;
+    VkDevice device = _vulkanContext.getVulkanDevice()->getLogicalDevice();
+    VkSwapchainKHR swapChain = _vulkanContext.getVulkanSwapChain()->getHandle();
 
-    vkWaitForFences(device, 1, &_vulkanContext._inFlightFences[_vulkanContext._currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &_vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()], VK_TRUE, UINT64_MAX);
 
-    // uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _vulkanContext._imageAvailableSemaphores[_vulkanContext._currentFrame], VK_NULL_HANDLE, &_vulkanContext._vulkanSwapChain._imageIndex);
-    
+    u32 imageIndex = 0;
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _vulkanContext.getImageAvailableSemaphores()[_vulkanContext.getCurrentFrame()], VK_NULL_HANDLE, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return recreateSwapChain();
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         MT_LOG_ERROR("Failed to acquire swap chain image!");
         return false;
     }
-    
-    vkResetFences(device, 1, &_vulkanContext._inFlightFences[_vulkanContext._currentFrame]);
 
-   
+    vkResetFences(device, 1, &_vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()]);
+
+    _vulkanContext.getVulkanSwapChain()->setImageIndex(imageIndex);
+
     return true;
 }
 
 b8 mtVulkanBackend::renderBegin() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame];
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     commandBuffer.begin();
-    mtVulkanFrameBuffer& frameBuffer = _vulkanContext._vulkanSwapChain._framebuffers[_vulkanContext._vulkanSwapChain._imageIndex];
+    mtVulkanFrameBuffer& frameBuffer = _vulkanContext.getVulkanSwapChain()->getFramebuffers()[_vulkanContext.getVulkanSwapChain()->getImageIndex()];
 
-    _vulkanContext._mainRenderPass._w = _vulkanContext._width;
-    _vulkanContext._mainRenderPass._h = _vulkanContext._height;
+    _vulkanContext.getMainRenderPass()->setExtent(_vulkanContext.getWidth(), _vulkanContext.getHeight());
 
-    _vulkanContext._mainRenderPass.begin(commandBuffer, frameBuffer);
+    _vulkanContext.getMainRenderPass()->begin(commandBuffer, frameBuffer);
 
     return true; 
 }
 
 b8 mtVulkanBackend::renderEnd() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext._currentFrame];
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
-    _vulkanContext._mainRenderPass.end(commandBuffer);
+    _vulkanContext.getMainRenderPass()->end(commandBuffer);
 
     commandBuffer.end();
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    
-    VkSemaphore waitSemaphores[] = {_vulkanContext._imageAvailableSemaphores[_vulkanContext._currentFrame]};
+
+    VkSemaphore waitSemaphores[] = {_vulkanContext.getImageAvailableSemaphores()[_vulkanContext.getCurrentFrame()]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer._commandBuffer;
-    
-    VkSemaphore signalSemaphores[] = {_vulkanContext._renderFinishedSemaphores[_vulkanContext._currentFrame]};
+    VkCommandBuffer cb = commandBuffer.getCommandBuffer();
+    submitInfo.pCommandBuffers = &cb;
+
+    VkSemaphore signalSemaphores[] = {_vulkanContext.getRenderFinishedSemaphores()[_vulkanContext.getCurrentFrame()]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-    
-    if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _vulkanContext._inFlightFences[_vulkanContext._currentFrame]) != VK_SUCCESS) {
+
+    if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo, _vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()]) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to submit draw command buffer!");
         return false;
     }
@@ -610,6 +591,6 @@ b8 mtVulkanBackend::renderEnd() {
 }
 
 b8 mtVulkanBackend::renderPresent() {
-    _vulkanContext._vulkanSwapChain.represent();
+    _vulkanContext.getVulkanSwapChain()->represent();
     return true;
 }
