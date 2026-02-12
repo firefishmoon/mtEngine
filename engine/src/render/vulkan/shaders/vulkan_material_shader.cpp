@@ -155,7 +155,7 @@ b8 mtVulkanMaterialShader::createShaderModule(
         mtVulkanShaderStage* shaderStages
     ) {
 
-    std::string fileName = std::format("assets/shaders/%s.%s.spv", name, typeStr); 
+    std::string fileName = std::format("assets/shaders/{}.{}.spv", name, typeStr); 
     shaderStages[stageIndex].createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
     std::ifstream file(fileName, std::ios::ate | std::ios::binary);
@@ -217,20 +217,12 @@ void mtVulkanMaterialShader::use() {
 void mtVulkanMaterialShader::updateGlobalState() {
     VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
     u32 image_index = _context->getCurrentFrame();
-    auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_context->getCurrentFrame()];
-    VkCommandBuffer command_buffer = commandBuffer.getHandle();
-    VkDescriptorSet global_descriptor = _globalDescriptorSets[image_index];
-
-    // Bind the global descriptor set to be updated.
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.getPipelineLayout(), 0, 1, &global_descriptor, 0, 0);
-
+    
     // Configure the descriptors for the given index.
     u32 range = sizeof(GlobalUniformObject);
     u64 offset = 0;
 
     // Copy data to buffer
-    // vulkan_buffer_load_data(context, &shader->global_uniform_buffer, offset, range, 0, &shader->global_ubo);
     _globalUniformBuffer.loadData(offset, range, 0, &_globalUBO);
 
     VkDescriptorBufferInfo bufferInfo;
@@ -247,7 +239,14 @@ void mtVulkanMaterialShader::updateGlobalState() {
     descriptor_write.descriptorCount = 1;
     descriptor_write.pBufferInfo = &bufferInfo;
 
-    vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, 0); 
+    vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, 0);
+
+    // Bind the global descriptor set to the command buffer.
+    auto _pCommandBuffers = _context->getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_context->getCurrentFrame()];
+    VkCommandBuffer command_buffer = commandBuffer.getHandle();
+    VkDescriptorSet global_descriptor = _globalDescriptorSets[image_index];
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.getPipelineLayout(), 0, 1, &global_descriptor, 0, 0);
 }
 
 

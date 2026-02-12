@@ -68,7 +68,7 @@ protected:
 
     // mtVector<VkFramebuffer> _swapChainFramebuffers;
 
-    VkRenderPass _renderPass = VK_NULL_HANDLE;
+    // VkRenderPass _renderPass = VK_NULL_HANDLE;
 
     b8 _framebufferResized = false;
     

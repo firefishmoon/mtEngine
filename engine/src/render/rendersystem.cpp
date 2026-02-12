@@ -3,6 +3,9 @@
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
 #include "core/eventsystem.h"
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
@@ -31,7 +34,7 @@ b8 mtRenderSystem::initialize() {
         return false;
     }
     mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
-        this->renderFrame({});
+        this->renderFrame({event.fdata});
         
     });
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
@@ -59,9 +62,33 @@ void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
     // if (_backend) {
     //     _backend->renderFrame();
     // }
+    //
+    float speed = 2.0f;
+    static float z = 3.0f;
+    z += speed * packet.delta;
+
     if (!_backend->renderPrepare())
             return;
     _backend->renderBegin();
+
+    glm::mat4 projection = glm::perspective(
+        glm::radians(45.0f), 
+        (float)_settings.width / (float)_settings.height, 
+        0.1f, 
+        100.0f
+    );
+    glm::mat4 view = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, z),   // eye: 相机位置
+        glm::vec3(0.0f, 0.0f, 0.0f),   // center: 观察目标点
+        glm::vec3(0.0f, 1.0f, 0.0f)    // up: 相机的上方向（世界坐标）
+    ); 
+    _backend->updateGlobalState(
+        projection, 
+        view, 
+        glm::vec3(0.0f, 0.0f, 0.0f), 
+        glm::vec4(0.0f,0.0f,0.0f,0.0f), 
+        0);
+
     _backend->renderEnd();
     _backend->renderPresent();
 }

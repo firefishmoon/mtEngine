@@ -185,7 +185,6 @@ b8 mtVulkanContext::initialize(u32 width, u32 height) {
         cmdBuffer.initialize(this, true);
     }
 
-    _objectShader.initialize(this);
 
     createBuffers();
 

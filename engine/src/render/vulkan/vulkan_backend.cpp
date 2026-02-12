@@ -2,13 +2,9 @@
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <set>
-#include <fstream>
 #define VK_USE_PLATFORM_WIN32_KHR 
 #include "vulkan_backend.h"
 #include "core/loggersystem.h"
-#include "core/application.h"
-#include "core/platform.h"
-#include "vulkan_error.h"
 #include "vulkan_buffer.h"
 #include <windows.h>
 #include <assert.h>
@@ -45,8 +41,10 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
         0.0f,
         0.2f,
         1.0f,
-        0.0f,
+        1.0f,
         0.0f);
+
+    _vulkanContext.getMaterialShader().initialize(&_vulkanContext);
 
     if (!createFramebuffers()) {
         MT_LOG_ERROR("Failed to create framebuffers!");
@@ -57,19 +55,21 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
     const u32 vert_count = 4;
     glm::vec3 verts[vert_count];
 
-    const f32 f = 10.0f;
+    verts[0].x = -0.5f;
+    verts[0].y = -0.5f;
+    verts[0].z = 0.0f;
 
-    verts[0].x = -0.5 * f;
-    verts[0].y = -0.5 * f;
+    verts[1].y = 0.5f;
+    verts[1].x = 0.5f;
+    verts[1].z = 0.0f;
 
-    verts[1].y = 0.5 * f;
-    verts[1].x = 0.5 * f;
+    verts[2].x = -0.5f;
+    verts[2].y = 0.5f;
+    verts[2].z = 0.0f;
 
-    verts[2].x = -0.5 * f;
-    verts[2].y = 0.5 * f;
-
-    verts[3].x = 0.5 * f;
-    verts[3].y = -0.5 * f;
+    verts[3].x = 0.5f;
+    verts[3].y = -0.5f;
+    verts[3].z = 0.0f;
 
     const u32 index_count = 6;
     u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
@@ -106,7 +106,7 @@ b8 mtVulkanBackend::shutdown() {
     // _imageAvailableSemaphores.clear();
     
     // _vulkanContext.shutdown();
-    _renderPass = VK_NULL_HANDLE;
+    // _renderPass = VK_NULL_HANDLE;
 
     MT_LOG_INFO("Vulkan Backend shutdown");
     return true;
@@ -212,6 +212,25 @@ b8 mtVulkanBackend::renderBegin() {
     commandBuffer.begin();
     mtVulkanFrameBuffer& frameBuffer = _vulkanContext.getVulkanSwapChain()->getFramebuffers()[_vulkanContext.getVulkanSwapChain()->getImageIndex()];
 
+    // Dynamic state
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = (f32)_vulkanContext.getHeight();
+    viewport.width = (f32)_vulkanContext.getWidth();
+    viewport.height = -(f32)_vulkanContext.getHeight();
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    // Scissor
+    VkRect2D scissor;
+    scissor.offset.x = scissor.offset.y = 0;
+    scissor.extent.width = _vulkanContext.getWidth();
+    scissor.extent.height = _vulkanContext.getHeight();
+
+    vkCmdSetViewport(commandBuffer.getHandle(), 0, 1, &viewport);
+    vkCmdSetScissor(commandBuffer.getHandle(), 0, 1, &scissor);
+
+
     _vulkanContext.getMainRenderPass()->setExtent(_vulkanContext.getWidth(), _vulkanContext.getHeight());
 
     _vulkanContext.getMainRenderPass()->begin(commandBuffer, frameBuffer);
@@ -286,23 +305,25 @@ void mtVulkanBackend::updateGlobalState(
     mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
     materialShader.use();
 
-    // context.object_shader.global_ubo.projection = projection;
-    // context.object_shader.global_ubo.view = view;
-    //
-    // // TODO: other ubo properties
-    //
+    materialShader.setProjection(projection);
+    materialShader.setView(view);
+
+    // TODO: other ubo properties
+
     // vulkan_object_shader_update_global_state(&context, &context.object_shader);
-    //
-    // // TODO: temporary test code
-    // vulkan_object_shader_use(&context, &context.object_shader);
-    //
-    // // Bind vertex buffer at offset.
-    // VkDeviceSize offsets[1] = {0};
-    // vkCmdBindVertexBuffers(command_buffer->handle, 0, 1, &context.object_vertex_buffer.handle, (VkDeviceSize*)offsets);
-    //
-    // // Bind index buffer at offset.
-    // vkCmdBindIndexBuffer(command_buffer->handle, context.object_index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
-    //
-    // // Issue the draw.
-    // vkCmdDrawIndexed(command_buffer->handle, 6, 1, 0, 0, 0);
+    materialShader.updateGlobalState();
+
+    // TODO: temporary test code
+    materialShader.use();
+
+    // Bind vertex buffer at offset.
+    VkDeviceSize offsets[1] = {0};
+    VkBuffer vertexBuffer = _vulkanContext.getVertexBuffer().getHandle();
+    vkCmdBindVertexBuffers(commandBuffer.getHandle(), 0, 1, &vertexBuffer, (VkDeviceSize*)offsets);
+
+    // Bind index buffer at offset.
+    vkCmdBindIndexBuffer(commandBuffer.getHandle(), _vulkanContext.getIndexBuffer().getHandle(), 0, VK_INDEX_TYPE_UINT32);
+
+    // Issue the draw.
+    vkCmdDrawIndexed(commandBuffer.getHandle(), 6, 1, 0, 0, 0);
 }

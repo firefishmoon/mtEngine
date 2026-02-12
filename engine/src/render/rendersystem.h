@@ -15,6 +15,7 @@ enum class mtBackendAPI {
 struct mtRenderPacket {
     // Placeholder for render packet data
     // e.g., mesh data, texture references, shader info, etc.
+    float delta; // delta time
 };
 
 struct mtRenderSettings {

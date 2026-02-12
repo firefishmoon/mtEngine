@@ -161,5 +161,15 @@ void mtVulkanBuffer::copyTo(
     vkCmdCopyBuffer(tempCommandBuffer.getHandle(), _handle, dest, 1, &copyRegion);
 
     tempCommandBuffer.end();
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    VkCommandBuffer cb = tempCommandBuffer.getHandle();
+    submitInfo.pCommandBuffers = &cb;
+
+    vkQueueSubmit(queue, 1, &submitInfo, fence);
+    vkQueueWaitIdle(queue);
+
     tempCommandBuffer.shutdown();
 }

@@ -127,6 +127,7 @@ def run(c):
     if not bin_path.exists():
         print("Error: binary doesn't exist. Please build and install first.")
         return
+    os.chdir(bin_path.parent)
     c.run(str(bin_path), pty=pty)
 
 @task

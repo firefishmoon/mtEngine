@@ -5,6 +5,7 @@
 #include "render/vulkan/vulkan_buffer.h"
 #include "render/vulkan/vulkan_pipeline.h"
 #include "render/render_types.h"
+#include <glm/glm.hpp>
 
 class mtVulkanContext;
 
@@ -25,6 +26,9 @@ public:
     void use();
 
     void updateGlobalState();
+
+    inline void setProjection(glm::mat4& projection) { _globalUBO.projection = projection; }
+    inline void setView(glm::mat4& view) { _globalUBO.view = view; }
 private:
     b8 createShaderModule(
         const char* name,
