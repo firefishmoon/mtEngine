@@ -29,6 +29,8 @@ public:
     void begin();
     void end();
 
+    inline VkCommandBuffer getHandle() const { return _handle; }
+
     // mtVkCommandBufferContext* getCommandBufferContext() { return &_commandBufferCtx; }
     // VkCommandBuffer beginSingleTimeCommands();
     // void endSingleTimeCommands(VkDevice device, VkQueue graphicsQueue, VkCommandBuffer commandBuffer);
@@ -37,8 +39,6 @@ protected:
 
     mtVulkanContext* _context;
     // mtVkCommandBufferContext _commandBufferCtx;
-    VkCommandBuffer _commandBuffer;
+    VkCommandBuffer _handle;
     mtVkCommandBufferState _state;
-public:
-    inline VkCommandBuffer getCommandBuffer() const { return _commandBuffer; }
 };

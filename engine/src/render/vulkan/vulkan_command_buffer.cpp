@@ -13,7 +13,7 @@ b8 mtVulkanCommandBuffer::initialize(mtVulkanContext* context, b8 isPrimary) {
     allocInfo.level = isPrimary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
     allocInfo.commandBufferCount = 1;
 
-    if (vkAllocateCommandBuffers(device, &allocInfo, &_commandBuffer) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(device, &allocInfo, &_handle) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to allocate command buffers");
         return false;
     }
@@ -27,26 +27,26 @@ b8 mtVulkanCommandBuffer::shutdown() {
         _context->getVulkanDevice()->getLogicalDevice(),
         _context->getVulkanDevice()->getGraphicsCommandPool(),
         1,
-        &_commandBuffer
+        &_handle
     );
-    _commandBuffer = VK_NULL_HANDLE;
+    _handle = VK_NULL_HANDLE;
     _state = mtVkCommandBufferState::MT_VK_COMMAND_BUFFER_STATE_NOT_ALLOCATED;
     return true;
 }
 
 void mtVulkanCommandBuffer::begin() {
-    vkResetCommandBuffer(_commandBuffer, 0);
+    vkResetCommandBuffer(_handle, 0);
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    if (vkBeginCommandBuffer(_commandBuffer, &beginInfo) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(_handle, &beginInfo) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to begin recording command buffer!");
     }
 }
 
 void mtVulkanCommandBuffer::end() {
-    if (vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(_handle) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to end recording command buffer!");
     }
 }

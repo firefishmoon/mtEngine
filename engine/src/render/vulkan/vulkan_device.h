@@ -54,7 +54,7 @@ private:
     b8 selectPhysicalDevice();
     // b8 isDeviceSuitable(VkPhysicalDevice device);
 protected:
-    friend class mtVulkanContext;
+    // friend class mtVulkanContext;
     // mtVkDeviceContext _deviceContext;
     mtVulkanContext* _context;
 

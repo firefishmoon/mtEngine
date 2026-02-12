@@ -2,7 +2,7 @@
 
 #include "../defines.h"
 #include "../common/singleton.h"
-#include "ibackend.h"
+#include "irenderbackend.h"
 
 enum class mtBackendAPI {
     OPENGL = 0,
@@ -19,6 +19,8 @@ struct mtRenderPacket {
 
 struct mtRenderSettings {
     mtBackendAPI api;
+    u32 width;
+    u32 height;
 };
 
 class MT_API mtRenderSystem : public Singleton<mtRenderSystem> {
@@ -33,5 +35,5 @@ public:
     void renderFrame(const mtRenderPacket& packet);
 private:
     mtRenderSettings _settings;
-    mtIBackend* _backend = nullptr;
+    mtIRenderBackend* _backend = nullptr;
 };

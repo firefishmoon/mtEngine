@@ -9,8 +9,10 @@
 #include "core/application.h"
 #include "core/platform.h"
 #include "vulkan_error.h"
+#include "vulkan_buffer.h"
 #include <windows.h>
 #include <assert.h>
+#include <glm/glm.hpp>
 
 constexpr bool enableValidationLayers = true;
 const std::vector<const char*> validationLayers = {
@@ -23,34 +25,16 @@ const std::vector<const char*> deviceExtensions = {
 
 
 
-b8 mtVulkanBackend::initialize() {
+b8 mtVulkanBackend::initialize(u32 width, u32 height) {
     MT_LOG_INFO("Initializing Vulkan Backend");
 
-    if (!_vulkanContext.initialize()) {
+    if (!_vulkanContext.initialize(width, height)) {
         MT_LOG_ERROR("Failed to initialize Vulkan context!");
         return false;
     }
     
     MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->getImageCount();
 
-
-    // if (!createRenderPass()) {
-    //     MT_LOG_ERROR("Failed to create render pass!");
-    //     return false;
-    // }
-    
-    
-    
-    // if (!createCommandBuffers()) {
-    //     MT_LOG_ERROR("Failed to create command buffers!");
-    //     return false;
-    // }
-    
-    // if (!createSyncObjects()) {
-    //     MT_LOG_ERROR("Failed to create sync objects!");
-    //     return false;
-    // }
-    //
     _vulkanContext.getMainRenderPass()->initialize(
         &_vulkanContext,
         0,
@@ -68,6 +52,46 @@ b8 mtVulkanBackend::initialize() {
         MT_LOG_ERROR("Failed to create framebuffers!");
         return false;
     }
+
+    // test code
+    const u32 vert_count = 4;
+    glm::vec3 verts[vert_count];
+
+    const f32 f = 10.0f;
+
+    verts[0].x = -0.5 * f;
+    verts[0].y = -0.5 * f;
+
+    verts[1].y = 0.5 * f;
+    verts[1].x = 0.5 * f;
+
+    verts[2].x = -0.5 * f;
+    verts[2].y = 0.5 * f;
+
+    verts[3].x = 0.5 * f;
+    verts[3].y = -0.5 * f;
+
+    const u32 index_count = 6;
+    u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
+
+    uploadDataRange(
+        _vulkanContext.getVulkanDevice()->getGraphicsCommandPool(),
+        0, 
+        _vulkanContext.getVulkanDevice()->getGraphicsQueue(), 
+        _vulkanContext.getVertexBuffer(), 
+        0, 
+        sizeof(glm::vec3) * vert_count, 
+        verts);
+
+    uploadDataRange(
+        _vulkanContext.getVulkanDevice()->getGraphicsCommandPool(),
+        0, 
+        _vulkanContext.getVulkanDevice()->getGraphicsQueue(), 
+        _vulkanContext.getIndexBuffer(), 
+        0, 
+        sizeof(u32) * index_count, 
+        indices);
+
     
     MT_LOG_INFO("Vulkan Backend Initialized");
 
@@ -105,199 +129,6 @@ b8 mtVulkanBackend::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 
-// b8 mtVulkanBackend::createRenderPass() {
-//     const u32 attachment_description_count = 2;
-//     VkAttachmentDescription attachment_descriptions[attachment_description_count];
-
-//     VkAttachmentDescription colorAttachment{};
-//     colorAttachment.format = _vulkanContext.getVulkanSwapChain()->getImageFormat().format;
-//     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-//     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-//     attachment_descriptions[0] = colorAttachment;
-
-//     VkAttachmentReference colorAttachmentRef{};
-//     colorAttachmentRef.attachment = 0;
-//     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-//     VkSubpassDescription subpass{};
-//     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-//     subpass.colorAttachmentCount = 1;
-//     subpass.pColorAttachments = &colorAttachmentRef;
-
-//     VkSubpassDependency dependency{};
-//     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-//     dependency.dstSubpass = 0;
-//     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//     dependency.srcAccessMask = 0;
-//     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-
-//     VkAttachmentDescription depth_attachment = {};
-//     depth_attachment.format = _vulkanContext.getVulkanDevice()->getDepthFormat();
-//     depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-//     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//     depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//     depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//     depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//     depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//     depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-//     attachment_descriptions[1] = depth_attachment;
-
-//     VkAttachmentReference depth_attachment_reference;
-//     depth_attachment_reference.attachment = 1;
-//     depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-//     subpass.pDepthStencilAttachment = &depth_attachment_reference;
-
-//     VkRenderPassCreateInfo renderPassInfo{};
-//     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-//     renderPassInfo.attachmentCount = 2;
-//     renderPassInfo.pAttachments = attachment_descriptions;
-//     renderPassInfo.subpassCount = 1;
-//     renderPassInfo.pSubpasses = &subpass;
-//     renderPassInfo.dependencyCount = 1;
-//     renderPassInfo.pDependencies = &dependency;
-
-//     VkDevice device = _vulkanContext.getVulkanDevice()->getLogicalDevice();
-//     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
-//         MT_LOG_ERROR("Failed to create render pass");
-//         return false;
-//     }
-    
-//     _vulkanContext.getMainRenderPass()->setHandle(_renderPass);
-
-//     return true;
-// }
-
-// b8 mtVulkanBackend::createGraphicsPipeline() {
-//     auto vertShaderCode = readFile("engine/shaders/compiled/vert.spv");
-//     auto fragShaderCode = readFile("engine/shaders/compiled/frag.spv");
-//
-//     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-//     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
-//
-//     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-//     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-//     vertShaderStageInfo.module = vertShaderModule;
-//     vertShaderStageInfo.pName = "main";
-//
-//     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-//     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-//     fragShaderStageInfo.module = fragShaderModule;
-//     fragShaderStageInfo.pName = "main";
-//
-//     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-//
-//     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-//     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-//     vertexInputInfo.vertexBindingDescriptionCount = 0;
-//     vertexInputInfo.vertexAttributeDescriptionCount = 0;
-//
-//     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-//     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-//     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-//     inputAssembly.primitiveRestartEnable = VK_FALSE;
-//
-//     VkViewport viewport{};
-//     viewport.x = 0.0f;
-//     viewport.y = 0.0f;
-//     viewport.width = (float)_vulkanContext._width;
-//     viewport.height = (float)_vulkanContext._height;
-//     viewport.minDepth = 0.0f;
-//     viewport.maxDepth = 1.0f;
-//
-//     VkRect2D scissor{};
-//     scissor.offset = {0, 0};
-//     scissor.extent = {_vulkanContext._width, _vulkanContext._height};
-//
-//     VkPipelineViewportStateCreateInfo viewportState{};
-//     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-//     viewportState.viewportCount = 1;
-//     viewportState.pViewports = &viewport;
-//     viewportState.scissorCount = 1;
-//     viewportState.pScissors = &scissor;
-//
-//     VkPipelineRasterizationStateCreateInfo rasterizer{};
-//     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-//     rasterizer.depthClampEnable = VK_FALSE;
-//     rasterizer.rasterizerDiscardEnable = VK_FALSE;
-//     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-//     rasterizer.lineWidth = 1.0f;
-//     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-//     rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-//     rasterizer.depthBiasEnable = VK_FALSE;
-//
-//     VkPipelineMultisampleStateCreateInfo multisampling{};
-//     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-//     multisampling.sampleShadingEnable = VK_FALSE;
-//     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-//
-//     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-//     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-//     colorBlendAttachment.blendEnable = VK_FALSE;
-//
-//     VkPipelineColorBlendStateCreateInfo colorBlending{};
-//     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-//     colorBlending.logicOpEnable = VK_FALSE;
-//     colorBlending.logicOp = VK_LOGIC_OP_COPY;
-//     colorBlending.attachmentCount = 1;
-//     colorBlending.pAttachments = &colorBlendAttachment;
-//     colorBlending.blendConstants[0] = 0.0f;
-//     colorBlending.blendConstants[1] = 0.0f;
-//     colorBlending.blendConstants[2] = 0.0f;
-//     colorBlending.blendConstants[3] = 0.0f;
-//
-//     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-//     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//     pipelineLayoutInfo.setLayoutCount = 0;
-//     pipelineLayoutInfo.pushConstantRangeCount = 0;
-//
-//     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-//     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
-//         MT_LOG_ERROR("Failed to create pipeline layout");
-//         return false;
-//     }
-//
-//     VkGraphicsPipelineCreateInfo pipelineInfo{};
-//     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-//     pipelineInfo.stageCount = 2;
-//     pipelineInfo.pStages = shaderStages;
-//     // pipelineInfo.stageCount = 0;
-//     // pipelineInfo.pStages = 0;
-//     pipelineInfo.pVertexInputState = &vertexInputInfo;
-//     pipelineInfo.pInputAssemblyState = &inputAssembly;
-//     pipelineInfo.pViewportState = &viewportState;
-//     pipelineInfo.pRasterizationState = &rasterizer;
-//     pipelineInfo.pMultisampleState = &multisampling;
-//     pipelineInfo.pColorBlendState = &colorBlending;
-//     pipelineInfo.layout = _pipelineLayout;
-//     pipelineInfo.renderPass = _renderPass;
-//     pipelineInfo.subpass = 0;
-//     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-//     pipelineInfo.basePipelineIndex = -1;
-//
-//     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS) {
-//         MT_LOG_ERROR("Failed to create graphics pipeline");
-//         return false;
-//     }
-//
-//     // destroy shader modules after pipeline creation
-//     vkDestroyShaderModule(device, fragShaderModule, nullptr);
-//     vkDestroyShaderModule(device, vertShaderModule, nullptr);
-//
-//     return true;
-// }
-
 b8 mtVulkanBackend::createFramebuffers() {
     // _swapChainFramebuffers.resize(_vulkanContext._vulkanSwapChain._swapChainImageViews.size());
 
@@ -319,137 +150,6 @@ b8 mtVulkanBackend::createFramebuffers() {
 }
 
 
-
-b8 mtVulkanBackend::recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to begin recording command buffer!");
-        return false;
-    }
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _vulkanContext.getMainRenderPass()->getHandle();
-    renderPassInfo.framebuffer = _vulkanContext.getVulkanSwapChain()->getFramebuffers()[imageIndex].getHandle();
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = {_vulkanContext.getWidth(), _vulkanContext.getHeight()};
-
-    VkClearValue clearColor[2]; //= {{{0.0f, 0.0f, 1.0f, 1.0f}}};
-    clearColor[0].color.float32[0] = 0.0f;
-    clearColor[0].color.float32[1] = 0.0f;
-    clearColor[0].color.float32[2] = 0.2f;
-    clearColor[0].color.float32[3] = 1.0f;
-    clearColor[1].depthStencil.depth = 0.0f;
-    clearColor[1].depthStencil.stencil = 0.0f;
-    renderPassInfo.clearValueCount = 2;
-    renderPassInfo.pClearValues = clearColor;
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
-
-    // VkViewport viewport{};
-    // viewport.x = 0.0f;
-    // viewport.y = 0.0f;
-    // viewport.width = (float)_vulkanContext._width;
-    // viewport.height = (float)_vulkanContext._height;
-    // viewport.minDepth = 0.0f;
-    // viewport.maxDepth = 1.0f;
-    // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    //
-    // VkRect2D scissor{};
-    // scissor.offset = {0, 0};
-    // scissor.extent = {_vulkanContext._width, _vulkanContext._height};
-    // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(commandBuffer);
-
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        MT_LOG_ERROR("Failed to record command buffer!");
-        return false;
-    }
-
-    return true;
-}
-
-// b8 mtVulkanBackend::renderFrame() {
-//     VkDevice device = _vulkanContext._vulkanDevice._logicDevice;
-//     VkSwapchainKHR swapChain = _vulkanContext._vulkanSwapChain._handle;
-//
-//     vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
-//     
-//     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-//     VkCommandBuffer commandBuffer = (*_pCommandBuffers)[_currentFrame].getCommandBufferContext()->_commandBuffer;
-//
-//
-//     uint32_t imageIndex;
-//     VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
-//     
-//     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-//         return recreateSwapChain();
-//     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-//         MT_LOG_ERROR("Failed to acquire swap chain image!");
-//         return false;
-//     }
-//     
-//     vkResetFences(device, 1, &_inFlightFences[_currentFrame]);
-//
-//     vkResetCommandBuffer(commandBuffer, 0);
-//
-//     if (!recordCommandBuffer(commandBuffer, imageIndex)) {
-//         return false;
-//     }
-//     
-//     VkSubmitInfo submitInfo{};
-//     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//     
-//     VkSemaphore waitSemaphores[] = {_imageAvailableSemaphores[_currentFrame]};
-//     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-//     submitInfo.waitSemaphoreCount = 1;
-//     submitInfo.pWaitSemaphores = waitSemaphores;
-//     submitInfo.pWaitDstStageMask = waitStages;
-//     submitInfo.commandBufferCount = 1;
-//     submitInfo.pCommandBuffers = &commandBuffer;
-//     
-//     VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};
-//     submitInfo.signalSemaphoreCount = 1;
-//     submitInfo.pSignalSemaphores = signalSemaphores;
-//     
-//     if (vkQueueSubmit(_vulkanContext._vulkanDevice._graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS) {
-//         MT_LOG_ERROR("Failed to submit draw command buffer!");
-//         return false;
-//     }
-//     
-//     VkPresentInfoKHR presentInfo{};
-//     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-//     presentInfo.waitSemaphoreCount = 1;
-//     presentInfo.pWaitSemaphores = signalSemaphores;
-//     
-//     VkSwapchainKHR swapChains[] = {swapChain};
-//     presentInfo.swapchainCount = 1;
-//     presentInfo.pSwapchains = swapChains;
-//     presentInfo.pImageIndices = &imageIndex;
-//     
-//     result = vkQueuePresentKHR(_vulkanContext._vulkanDevice._presentQueue, &presentInfo);
-//     
-//     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _framebufferResized) {
-//         _framebufferResized = false;
-//         return recreateSwapChain();
-//     } else if (result != VK_SUCCESS) {
-//         MT_LOG_ERROR("Failed to present swap chain image!");
-//         return false;
-//     }
-//     
-//     _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-//     
-//     return true;
-// }
-
 b8 mtVulkanBackend::recreateSwapChain() {
     vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
 
@@ -467,45 +167,6 @@ b8 mtVulkanBackend::recreateSwapChain() {
     MT_LOG_INFO("VulkanBackend recreateSwapChain success.");
     return true;
 }
-
-// b8 mtVulkanBackend::waitDeviceIdle() {
-//     vkDeviceWaitIdle(_vulkanContext._vulkanDevice._logicDevice);
-//     return true;
-// }
-
-// std::vector<char> mtVulkanBackend::readFile(const std::string& filename) {
-//     std::ifstream file(filename, std::ios::ate | std::ios::binary);
-//     
-//     if (!file.is_open()) {
-//         MT_LOG_ERROR("Failed to open file: %s", filename.c_str());
-//         return {};
-//     }
-//     
-//     size_t fileSize = (size_t)file.tellg();
-//     std::vector<char> buffer(fileSize);
-//     
-//     file.seekg(0);
-//     file.read(buffer.data(), fileSize);
-//     file.close();
-//     
-//     return buffer;
-// }
-//
-// VkShaderModule mtVulkanBackend::createShaderModule(const std::vector<char>& code) {
-//     VkShaderModuleCreateInfo createInfo{};
-//     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-//     createInfo.codeSize = code.size();
-//     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-//
-//     VkShaderModule shaderModule;
-//     if (vkCreateShaderModule(_vulkanContext._vulkanDevice._logicDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-//         MT_LOG_ERROR("Failed to create shader module");
-//         return VK_NULL_HANDLE;
-//     }
-//
-//     return shaderModule;
-// }
-//
 
 b8 mtVulkanBackend::renderPrepare() {
     // If a resize was requested, recreate the swap chain before acquiring an image
@@ -575,7 +236,7 @@ b8 mtVulkanBackend::renderEnd() {
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    VkCommandBuffer cb = commandBuffer.getCommandBuffer();
+    VkCommandBuffer cb = commandBuffer.getHandle();
     submitInfo.pCommandBuffers = &cb;
 
     VkSemaphore signalSemaphores[] = {_vulkanContext.getRenderFinishedSemaphores()[_vulkanContext.getCurrentFrame()]};
@@ -593,4 +254,55 @@ b8 mtVulkanBackend::renderEnd() {
 b8 mtVulkanBackend::renderPresent() {
     _vulkanContext.getVulkanSwapChain()->represent();
     return true;
+}
+
+void mtVulkanBackend::uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, mtVulkanBuffer& buffer, u64 offset, u64 size, void* data) {
+    VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    mtVulkanBuffer staging;
+    staging.initialize(&_vulkanContext, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true);
+
+    // Load the data into the staging buffer.
+    staging.loadData(0, size, 0, data);
+
+    // Perform the copy from staging to the device local buffer.
+    staging.copyTo(pool, fence, queue, 0, buffer.getHandle(), offset, size);
+
+    // Clean up the staging buffer.
+    staging.shutdown();
+}
+
+void mtVulkanBackend::updateGlobalState(
+        glm::mat4 projection,
+        glm::mat4 view,
+        glm::vec3 viewPosition,
+        glm::vec4 ambientColor,
+        s32 mode
+    ) {
+
+    auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+
+    // vulkan_object_shader_use(&context, &context.object_shader);
+    mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
+    materialShader.use();
+
+    // context.object_shader.global_ubo.projection = projection;
+    // context.object_shader.global_ubo.view = view;
+    //
+    // // TODO: other ubo properties
+    //
+    // vulkan_object_shader_update_global_state(&context, &context.object_shader);
+    //
+    // // TODO: temporary test code
+    // vulkan_object_shader_use(&context, &context.object_shader);
+    //
+    // // Bind vertex buffer at offset.
+    // VkDeviceSize offsets[1] = {0};
+    // vkCmdBindVertexBuffers(command_buffer->handle, 0, 1, &context.object_vertex_buffer.handle, (VkDeviceSize*)offsets);
+    //
+    // // Bind index buffer at offset.
+    // vkCmdBindIndexBuffer(command_buffer->handle, context.object_index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+    //
+    // // Issue the draw.
+    // vkCmdDrawIndexed(command_buffer->handle, 6, 1, 0, 0, 0);
 }

@@ -131,14 +131,14 @@ def run(c):
 
 @task
 def compile_shaders(c):
-    shader_dir = SRC_PATH / "engine" / "shaders"
-    output_dir = SRC_PATH / "engine" / "shaders" / "compiled"
+    shader_dir = SRC_PATH / "assets" / "shaders"
+    output_dir = SRC_PATH / "bin" / "assets" / "shaders"
     
     output_dir.mkdir(parents=True, exist_ok=True)
     
     shaders = [
-        (shader_dir / "shader.vert", output_dir / "vert.spv"),
-        (shader_dir / "shader.frag", output_dir / "frag.spv")
+        (shader_dir / "Builtin.Shader.vert", output_dir / "Builtin.Shader.vert.spv"),
+        (shader_dir / "Builtin.Shader.frag", output_dir / "Builtin.Shader.frag.spv")
     ]
     
     for src_file, dest_file in shaders:
@@ -156,12 +156,6 @@ def compile_shaders(c):
 
 @task
 def clean(c):
-    # Don't clean during CppCon and the week before/after
-    _, week, _ = datetime.now().isocalendar()
-    if week in (36, 37, 38):
-        print(f"I'm sorry I can't do that Dave as the current week is {week}.")
-        return
-
     build_path = get_build_path()
     if build_path.exists():
         shutil_rmtree(build_path)

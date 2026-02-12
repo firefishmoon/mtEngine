@@ -8,6 +8,8 @@
 #include "render/vulkan/vulkan_swapchain.h"
 #include "render/vulkan/vulkan_command_buffer.h"
 #include "render/vulkan/vulkan_renderpass.h"
+#include "render/vulkan/vulkan_buffer.h"
+#include "render/vulkan/shaders/vulkan_material_shader.h"
 #include "core/std_wrapper.h"
 
 
@@ -16,7 +18,7 @@ public:
     mtVulkanContext();
     ~mtVulkanContext();
 
-    b8 initialize();
+    b8 initialize(u32 width, u32 height);
     b8 shutdown();
 
     // VkInstance getInstance() const { return _instance; }
@@ -40,8 +42,14 @@ public:
     inline mtVector<VkSemaphore>& getRenderFinishedSemaphores() { return _renderFinishedSemaphores; }
     inline mtVector<VkFence>& getInFlightFences() { return _inFlightFences; }
     inline mtVulkanRenderPass* getMainRenderPass() { return &_mainRenderPass; }
+
+    inline mtVulkanBuffer& getVertexBuffer() { return _vertexBuffer; }
+    inline mtVulkanBuffer& getIndexBuffer() { return _indexBuffer; }
+    inline mtVulkanMaterialShader& getMaterialShader() { return _objectShader; }
+
 protected:
-    friend class mtVulkanDevice;
+    b8 createBuffers();
+    // friend class mtVulkanDevice;
     // mtVkContext _context;
     mtVulkanDevice _vulkanDevice;
     mtVulkanSwapChain _vulkanSwapChain;
@@ -58,8 +66,8 @@ protected:
 
     VkSurfaceKHR _surface;
 
-    u16 _width;
-    u16 _height;
+    u32 _width;
+    u32 _height;
 
     mtVector<VkSemaphore> _imageAvailableSemaphores;
     mtVector<VkSemaphore> _renderFinishedSemaphores;
@@ -67,5 +75,10 @@ protected:
 
     mtVulkanRenderPass _mainRenderPass;
 
+    mtVulkanBuffer _vertexBuffer;
+    mtVulkanBuffer _indexBuffer;
+
     u32 _currentFrame;
+
+    mtVulkanMaterialShader _objectShader;
 };

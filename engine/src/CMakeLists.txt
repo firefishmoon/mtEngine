@@ -6,6 +6,7 @@ else()
 endif()
 
 set(glfw3_DIR "${_vcpkg_root}/installed/x64-mingw-static/share/glfw3" CACHE PATH "Path to glfw3-config.cmake directory" FORCE)
+set(glm_DIR "${_vcpkg_root}/installed/x64-mingw-static/share/glm" CACHE PATH "Path to glm-config.cmake directory" FORCE)
 
 # Print vcpkg and glfw paths for debugging
 message(STATUS "_vcpkg_root = ${_vcpkg_root}")
@@ -13,6 +14,7 @@ message(STATUS "glfw3_DIR = ${glfw3_DIR}")
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package (Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 file(GLOB_RECURSE MTEngine_SOURCES CONFIGURE_DEPENDS "*.cpp")
 # Find glslc shader compiler
@@ -26,6 +28,7 @@ target_include_directories(mtengine PRIVATE ./)
 
 target_link_libraries(mtengine PRIVATE glfw)
 target_link_libraries(mtengine PRIVATE Vulkan::Vulkan)
+target_link_libraries(mtengine PRIVATE glm::glm)
 
 install(TARGETS mtengine DESTINATION bin)
 

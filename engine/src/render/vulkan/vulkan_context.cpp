@@ -7,6 +7,7 @@
 
 #define GLFW_INCLUDE_VULKAN 
 #include <glfw/glfw3.h>
+#include <glm/glm.hpp>
 #include "core/application.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
@@ -28,7 +29,10 @@ mtVulkanContext::~mtVulkanContext() {
     shutdown();
 }
 
-b8 mtVulkanContext::initialize() {
+b8 mtVulkanContext::initialize(u32 width, u32 height) {
+    _width = width;
+    _height = height;
+
     u32 apiVersion = 0;
     vkEnumerateInstanceVersion(&apiVersion);
     _apiMajor = VK_VERSION_MAJOR(apiVersion);
@@ -39,7 +43,7 @@ b8 mtVulkanContext::initialize() {
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "My Vulkan App";
+    appInfo.pApplicationName = "mtEngine";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "mtEngine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -148,10 +152,8 @@ b8 mtVulkanContext::initialize() {
         return false;
     }
 
-    _width = data->wndWidth;
-    _height = data->wndHeight;
     // initialize swapchain
-    _vulkanSwapChain.initialize(this, data->wndWidth, data->wndHeight);
+    _vulkanSwapChain.initialize(this, _width, _height);
     
 
     // semaphores & fences
@@ -183,12 +185,20 @@ b8 mtVulkanContext::initialize() {
         cmdBuffer.initialize(this, true);
     }
 
+    _objectShader.initialize(this);
+
+    createBuffers();
+
     MT_LOG_INFO("Vulkan Context Initialized");
     return true;
 }
 
 b8 mtVulkanContext::shutdown() {
     vkDeviceWaitIdle(_vulkanDevice.getLogicalDevice());
+
+    _objectShader.shutdown();
+    _indexBuffer.shutdown();
+    _vertexBuffer.shutdown();
 
     for (auto& commandbuffer : _commandBuffers) {
         commandbuffer.shutdown();
@@ -221,4 +231,32 @@ b8 mtVulkanContext::shutdown() {
 
     MT_LOG_INFO("Vulkan Context Shutdown");
     return true;
+}
+
+b8 mtVulkanContext::createBuffers() {
+    VkMemoryPropertyFlagBits memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    const u64 vertexBufferSize = sizeof(glm::vec3) * 1024;
+    if (!_vertexBuffer.initialize(this, 
+                                  vertexBufferSize, 
+                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                  memoryPropertyFlags, 
+                                  true)) {
+        MT_LOG_ERROR("Error creating vertex buffer.");
+        return false;
+    }
+
+    MT_LOG_INFO("Vertex buffer created, size: {}", vertexBufferSize);
+
+    const u64 indexBufferSize = sizeof(u32) * 1024;
+    if (!_indexBuffer.initialize(this, 
+                                  indexBufferSize, 
+                                  VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                  memoryPropertyFlags, 
+                                  true)) {
+        MT_LOG_ERROR("Error creating index buffer.");
+        return false;
+    }
+    MT_LOG_INFO("Index buffer created, size: {}", indexBufferSize);
+    return true; 
 }

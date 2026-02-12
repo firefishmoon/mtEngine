@@ -65,6 +65,7 @@ Engine dependency
 ========================
 ```
 vcpkg install glfw3:x64-mingw-static
+vcpkg install glm:x64-mingw-static
 
 ```
 Install vulkan sdk

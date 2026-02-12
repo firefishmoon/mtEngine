@@ -1,5 +1,5 @@
 #include "../../defines.h"
-#include "../ibackend.h"
+#include "../irenderbackend.h"
 #include <vector>
 #include <optional>
 #include <string>
@@ -22,14 +22,14 @@ struct QueueFamilyIndices {
     }
 };
 
-class MT_API mtVulkanBackend : public mtIBackend {
+class MT_API mtVulkanBackend : public mtIRenderBackend {
 public:
     mtVulkanBackend() = default;
     ~mtVulkanBackend() override {
         shutdown();
     };
 
-    b8 initialize() override;
+    b8 initialize(u32 width, u32 height) override;
     b8 createSurface();
     b8 shutdown() override;
     
@@ -45,15 +45,24 @@ public:
     b8 renderEnd() override;
     b8 renderPresent() override;
     b8 recreateSwapChain();
+
+    void updateGlobalState(
+        glm::mat4 projection,
+        glm::mat4 view,
+        glm::vec3 viewPosition,
+        glm::vec4 ambientColor,
+        s32 mode
+    ) override;
     
 protected:
     b8 createImageViews();
     //b8 createRenderPass();
-    b8 createGraphicsPipeline();
+    // b8 createGraphicsPipeline();
     b8 createFramebuffers();
     
+    void uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, mtVulkanBuffer& buffer, u64 offset, u64 size, void* data);
     
-    b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
+    // b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
     
     b8 checkDeviceExtensionSupport(VkPhysicalDevice device);
 

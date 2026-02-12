@@ -113,9 +113,9 @@ void mtVulkanRenderPass::begin(mtVulkanCommandBuffer& commandBuffer, mtVulkanFra
     renderPassInfo.clearValueCount = 2;
     renderPassInfo.pClearValues = clearColor;
 
-    vkCmdBeginRenderPass(commandBuffer.getCommandBuffer(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer.getHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void mtVulkanRenderPass::end(mtVulkanCommandBuffer& commandBuffer) {
-    vkCmdEndRenderPass(commandBuffer.getCommandBuffer());
+    vkCmdEndRenderPass(commandBuffer.getHandle());
 }

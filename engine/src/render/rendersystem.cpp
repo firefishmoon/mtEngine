@@ -26,7 +26,7 @@ b8 mtRenderSystem::initialize() {
         default:
             return false;
     }
-    if (_backend && !_backend->initialize()) {
+    if (_backend && !_backend->initialize(_settings.width, _settings.height)) {
         MT_LOG_ERROR("Failed to initialize rendering backend");
         return false;
     }
@@ -36,6 +36,8 @@ b8 mtRenderSystem::initialize() {
     });
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
         // Handle window resize
+        _settings.width = event.resize.width;
+        _settings.height = event.resize.height;
         if (_backend) {
             _backend->onResize(event.resize.width, event.resize.height);
         }

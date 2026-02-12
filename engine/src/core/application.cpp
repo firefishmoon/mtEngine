@@ -24,7 +24,7 @@ b8 mtApplication::initialize() {
     mtEventSystem::instance();
     mtEventSystem::getInstance()->instance();
 
-    mtRenderSettings renderSettings {mtBackendAPI::VULKAN};
+    mtRenderSettings renderSettings {mtBackendAPI::VULKAN, _config.width, _config.height};
     mtRenderSystem::instance(renderSettings);
 
     
@@ -62,9 +62,6 @@ static void key_callback(GLFWwindow *win, int key, int sc, int act, int mods) {
 
 static void window_size_callback(GLFWwindow* window, int width, int height) {
     MT_LOG_INFO("Window resized: width={}, height={}", width, height);
-    mtPlatformData* data = mtApplication::getInstance()->getPlatformData();
-    data->wndWidth = width;
-    data->wndHeight = height;
     mtEventSystem::getInstance()->emitEvent({
         mtEventType::WINDOW_RESIZE, 
         static_cast<u16>(width), 
@@ -96,8 +93,6 @@ void mtApplication::run() {
     // _platformData.hwnd = glfwGetWin32Window(window);
     // _platformData.hInstance = GetModuleHandle(NULL);
     _platformData.window = window;
-    _platformData.wndWidth = _config.width;
-    _platformData.wndHeight = _config.height;
     if (!mtRenderSystem::getInstance()->initialize()) {
         MT_LOG_FATAL("Failed to initialize Render System");
         return;
