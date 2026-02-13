@@ -6,6 +6,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
@@ -65,7 +66,12 @@ void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
     //
     float speed = 2.0f;
     static float z = 3.0f;
-    z += speed * packet.delta;
+    // z += speed * packet.delta;
+
+    static f32 angle = 0.01f;
+    angle += 0.1f;
+    glm::quat quat = glm::angleAxis(glm::radians(angle), glm::vec3(0, 0, -1));
+    glm::mat4 model = glm::mat4_cast(quat);
 
     if (!_backend->renderPrepare())
             return;
@@ -88,6 +94,7 @@ void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
         glm::vec3(0.0f, 0.0f, 0.0f), 
         glm::vec4(0.0f,0.0f,0.0f,0.0f), 
         0);
+    _backend->updateObject(model);
 
     _backend->renderEnd();
     _backend->renderPresent();

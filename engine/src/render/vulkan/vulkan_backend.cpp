@@ -313,6 +313,15 @@ void mtVulkanBackend::updateGlobalState(
     // vulkan_object_shader_update_global_state(&context, &context.object_shader);
     materialShader.updateGlobalState();
 
+}
+
+void mtVulkanBackend::updateObject(glm::mat4 model) {
+    auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
+
+    materialShader.updateObject(model);
+
     // TODO: temporary test code
     materialShader.use();
 
@@ -326,4 +335,5 @@ void mtVulkanBackend::updateGlobalState(
 
     // Issue the draw.
     vkCmdDrawIndexed(commandBuffer.getHandle(), 6, 1, 0, 0, 0);
+
 }

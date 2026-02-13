@@ -27,6 +27,8 @@ public:
 
     void updateGlobalState();
 
+    void updateObject(glm::mat4 model);
+
     inline void setProjection(glm::mat4& projection) { _globalUBO.projection = projection; }
     inline void setView(glm::mat4& view) { _globalUBO.view = view; }
 private:

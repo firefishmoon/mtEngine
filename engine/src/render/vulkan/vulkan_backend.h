@@ -53,6 +53,9 @@ public:
         glm::vec4 ambientColor,
         s32 mode
     ) override;
+
+
+    void updateObject(glm::mat4 model) override;
     
 protected:
     b8 createImageViews();

@@ -22,4 +22,6 @@ public:
         glm::vec4 ambientColor,
         s32 mode
     ) = 0;
+
+    virtual void updateObject(glm::mat4 model) = 0;
 };

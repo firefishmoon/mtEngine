@@ -250,3 +250,10 @@ void mtVulkanMaterialShader::updateGlobalState() {
 }
 
 
+void mtVulkanMaterialShader::updateObject(glm::mat4 model) {
+    u32 image_index = _context->getCurrentFrame();
+    auto _pCommandBuffers = _context->getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_context->getCurrentFrame()];
+
+    vkCmdPushConstants(commandBuffer.getHandle(), _pipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
+}
