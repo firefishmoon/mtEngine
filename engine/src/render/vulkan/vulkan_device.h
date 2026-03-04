@@ -20,15 +20,17 @@ class mtVulkanContext;
 // };
 
 struct mtVkSwapchainSupportInfo;
+class mtVulkanInstance;
 
 class mtVulkanDevice {
 public:
-    ~mtVulkanDevice() {
-    }
+    mtVulkanDevice(mtVulkanInstance& instance, VkSurfaceKHR surface);
 
-    b8 initialize(mtVulkanContext* context);
+    ~mtVulkanDevice();
 
-    b8 shutdown();
+    // b8 initialize(mtVulkanContext* context);
+
+    // b8 shutdown();
 
     void querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSupportInfo* outSupportInfo);
 
@@ -51,7 +53,7 @@ public:
 
     s32 findMemoryType(u32 typeFilter, u32 propertyFlags);
 private:
-    b8 selectPhysicalDevice();
+    b8 selectPhysicalDevice(mtVulkanInstance& instance, VkSurfaceKHR surface);
     // b8 isDeviceSuitable(VkPhysicalDevice device);
 protected:
     // friend class mtVulkanContext;

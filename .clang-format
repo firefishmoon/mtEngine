@@ -1,0 +1,6 @@
+# 基于 LLVM 风格，修改缩进为4空格
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120

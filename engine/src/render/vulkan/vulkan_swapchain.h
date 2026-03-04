@@ -7,7 +7,7 @@
 #include "vulkan_framebuffer.h"
 
 // struct mtVkSwapChainContext {
-//     
+//
 // };
 
 struct mtVkSwapchainSupportInfo {
@@ -24,12 +24,12 @@ struct mtVkSwapchainSupportInfo {
 };
 
 class mtVulkanContext;
+class mtVulkanDevice;
 
 class mtVulkanSwapChain {
 public:
-    ~mtVulkanSwapChain() {
-    }
-    b8 initialize(mtVulkanContext* context, u32 width, u32 height);
+    ~mtVulkanSwapChain();
+    b8 initialize(mtVulkanDevice& mtVkdevice, u32 width, u32 height);
     b8 create(u32 width, u32 height);
     b8 shutdown();
 
@@ -67,5 +67,5 @@ protected:
     mtVector<mtVulkanFrameBuffer> _framebuffers;
 
     mtVulkanImage _depthAttachment;
-    
+
 };
