@@ -19,12 +19,14 @@ struct mtVkCommandBufferContext {
     mtVkCommandBufferState _state;
 };
 
+class mtVulkanDevice;
+
 class mtVulkanCommandBuffer {
 public:
+    mtVulkanCommandBuffer(mtVulkanDevice& mtVkDevice, b8 isPrimary);
     ~mtVulkanCommandBuffer() {
+        shutdown();
     }
-    b8 initialize(mtVulkanContext* context, b8 isPrimary);
-    b8 shutdown();
 
     void begin();
     void end();
@@ -35,10 +37,14 @@ public:
     // VkCommandBuffer beginSingleTimeCommands();
     // void endSingleTimeCommands(VkDevice device, VkQueue graphicsQueue, VkCommandBuffer commandBuffer);
 protected:
+    b8 initialize(b8 isPrimary);
+    b8 shutdown();
     // access via public accessors instead of friendship
 
     mtVulkanContext* _context;
     // mtVkCommandBufferContext _commandBufferCtx;
     VkCommandBuffer _handle;
     mtVkCommandBufferState _state;
+
+    mtVulkanDevice& _mtVkDevice;
 };

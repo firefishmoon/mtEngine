@@ -34,9 +34,9 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     global_layout_info.bindingCount = 1;
     global_layout_info.pBindings = &global_ubo_layout_binding;
     VK_CHECK(vkCreateDescriptorSetLayout(
-        device, 
-        &global_layout_info, 
-        0, 
+        device,
+        &global_layout_info,
+        0,
         &_globalDescriptorSetLayout));
 
     // Global descriptor pool: Used for global items such as view/projection matrix.
@@ -49,9 +49,9 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     global_pool_info.pPoolSizes = &global_pool_size;
     global_pool_info.maxSets = context->getVulkanSwapChain()->getImageCount();
     VK_CHECK(vkCreateDescriptorPool(
-        device, 
-        &global_pool_info, 
-        0, 
+        device,
+        &global_pool_info,
+        0,
         &_globalDescriptorPool));
 
      // Pipeline creation
@@ -91,7 +91,7 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     const s32 descriptor_set_layout_count = 1;
     VkDescriptorSetLayout layouts[1] = {
         _globalDescriptorSetLayout};
-    
+
     // Stages
     // NOTE: Should match the number of shader->stages.
     VkPipelineShaderStageCreateInfo stage_create_infos[SHADER_STAGE_COUNT];
@@ -99,19 +99,19 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     for (u32 i = 0; i < SHADER_STAGE_COUNT; ++i) {
         stage_create_infos[i].sType = _stages[i].shaderStageCreateInfo.sType;
         stage_create_infos[i] = _stages[i].shaderStageCreateInfo;
-    } 
+    }
 
     if (!_pipeline.initialize(
         context,
-        context->getMainRenderPass(), 
+        context->getMainRenderPass(),
         attribute_count,
-        attribute_descriptions, 
-        descriptor_set_layout_count, 
-        layouts, 
-        SHADER_STAGE_COUNT, 
-        stage_create_infos, 
-        viewport, 
-        scissor, 
+        attribute_descriptions,
+        descriptor_set_layout_count,
+        layouts,
+        SHADER_STAGE_COUNT,
+        stage_create_infos,
+        viewport,
+        scissor,
         false
     )) {
         MT_LOG_ERROR("Failed to load graphics pipeline for shader.");
@@ -119,16 +119,24 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     }
 
     // Create uniform buffer.
-    if (!_globalUniformBuffer.initialize(
-        context,
+    // if (!_globalUniformBuffer.initialize(
+    //     context,
+    //     sizeof(GlobalUniformObject),
+    //     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+    //     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+    //     true
+    // )) {
+    //     MT_LOG_ERROR("Vulkan buffer creation failed for shader.");
+    //     return false;
+    // }
+
+    _globalUniformBuffer = std::make_unique<mtVulkanBuffer>(
+        *context->getVulkanDevice(),
         sizeof(GlobalUniformObject),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         true
-    )) {
-        MT_LOG_ERROR("Vulkan buffer creation failed for shader.");
-        return false;
-    }
+    );
 
     // Allocate global descriptor sets.
     VkDescriptorSetLayout global_layouts[3] = {
@@ -142,7 +150,7 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     alloc_info.descriptorSetCount = 3;
     alloc_info.pSetLayouts = global_layouts;
     VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, _globalDescriptorSets));
-    
+
 
     return true;
 }
@@ -155,7 +163,7 @@ b8 mtVulkanMaterialShader::createShaderModule(
         mtVulkanShaderStage* shaderStages
     ) {
 
-    std::string fileName = std::format("assets/shaders/{}.{}.spv", name, typeStr); 
+    std::string fileName = std::format("assets/shaders/{}.{}.spv", name, typeStr);
     shaderStages[stageIndex].createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
     std::ifstream file(fileName, std::ios::ate | std::ios::binary);
@@ -165,10 +173,10 @@ b8 mtVulkanMaterialShader::createShaderModule(
     }
     size_t fileSize = (size_t)file.tellg();
     std::vector<char> buffer(fileSize);
-    
+
     file.seekg(0);
     file.read(buffer.data(), fileSize);
-    file.close(); 
+    file.close();
     shaderStages[stageIndex].createInfo.codeSize = fileSize;
     shaderStages[stageIndex].createInfo.pCode = (u32*)buffer.data();
 
@@ -192,7 +200,7 @@ b8 mtVulkanMaterialShader::createShaderModule(
 void mtVulkanMaterialShader::shutdown() {
 
     VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
-    _globalUniformBuffer.shutdown();
+    // _globalUniformBuffer.shutdown();
     _pipeline.shutdown();
     // Destroy global descriptor pool.
     vkDestroyDescriptorPool(device, _globalDescriptorPool, 0);
@@ -204,12 +212,12 @@ void mtVulkanMaterialShader::shutdown() {
     for (u32 i = 0; i < SHADER_STAGE_COUNT; ++i) {
         vkDestroyShaderModule(device, _stages[i].handle, 0);
         _stages[i].handle = 0;
-    } 
+    }
 }
 
 void mtVulkanMaterialShader::use() {
     auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_context->getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context->getCurrentFrame()];
     _pipeline.bind(&commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 }
@@ -217,16 +225,16 @@ void mtVulkanMaterialShader::use() {
 void mtVulkanMaterialShader::updateGlobalState() {
     VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
     u32 image_index = _context->getCurrentFrame();
-    
+
     // Configure the descriptors for the given index.
     u32 range = sizeof(GlobalUniformObject);
     u64 offset = 0;
 
     // Copy data to buffer
-    _globalUniformBuffer.loadData(offset, range, 0, &_globalUBO);
+    _globalUniformBuffer->loadData(offset, range, 0, &_globalUBO);
 
     VkDescriptorBufferInfo bufferInfo;
-    bufferInfo.buffer = _globalUniformBuffer.getHandle();
+    bufferInfo.buffer = _globalUniformBuffer->getHandle();
     bufferInfo.offset = offset;
     bufferInfo.range = range;
 
@@ -243,7 +251,7 @@ void mtVulkanMaterialShader::updateGlobalState() {
 
     // Bind the global descriptor set to the command buffer.
     auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_context->getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context->getCurrentFrame()];
     VkCommandBuffer command_buffer = commandBuffer.getHandle();
     VkDescriptorSet global_descriptor = _globalDescriptorSets[image_index];
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.getPipelineLayout(), 0, 1, &global_descriptor, 0, 0);
@@ -253,7 +261,7 @@ void mtVulkanMaterialShader::updateGlobalState() {
 void mtVulkanMaterialShader::updateObject(glm::mat4 model) {
     u32 image_index = _context->getCurrentFrame();
     auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_context->getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context->getCurrentFrame()];
 
     vkCmdPushConstants(commandBuffer.getHandle(), _pipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
 }

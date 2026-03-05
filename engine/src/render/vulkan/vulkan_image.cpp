@@ -4,12 +4,23 @@
 #include "core/loggersystem.h"
 #include <vulkan/vulkan_core.h>
 
-mtVulkanImage::mtVulkanImage()
-    : _pVulkanContext(nullptr) {
+mtVulkanImage::mtVulkanImage(mtVulkanDevice& mtVkDevice,
+                u32 width,
+                u32 height,
+                VkFormat format,
+                VkImageTiling tiling,
+                VkImageUsageFlags usage,
+                VkMemoryPropertyFlags properties,
+                b8 createView,
+                VkImageAspectFlags viewAspectFlags,
+                u32 mipLevels) : _mtVkDevice(mtVkDevice) {
+    if (!initialize(mtVkDevice, width, height, format, tiling, usage, properties, createView, viewAspectFlags, mipLevels)) {
+        throw std::runtime_error("Failed to create Vulkan Image!");
+    }
 }
 
 
-b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
+b8 mtVulkanImage::initialize(mtVulkanDevice& mtVkDevice,
                             u32 width,
                             u32 height,
                             VkFormat format,
@@ -19,7 +30,6 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
                             b8 createView,
                             VkImageAspectFlags viewAspectFlags,
                             u32 mipLevels) {
-    _pVulkanContext = pVulkanContext;
     if (mipLevels < 1) {
         MT_LOG_WARN("Mip levels must be at least 1. Setting to 1.");
         mipLevels = 1;
@@ -41,7 +51,7 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkDevice device = _pVulkanContext->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
 
     if (vkCreateImage(device, &imageInfo, nullptr, &_image) != VK_SUCCESS) {
         return false;
@@ -53,9 +63,9 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = _memoryRequirments.size;
-    allocInfo.memoryTypeIndex = _pVulkanContext->getVulkanDevice()->findMemoryType(_memoryRequirments.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = _mtVkDevice.findMemoryType(_memoryRequirments.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(_pVulkanContext->getVulkanDevice()->getLogicalDevice(), &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
+    if (vkAllocateMemory(_mtVkDevice.getLogicalDevice(), &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
         return false;
     }
 
@@ -86,7 +96,7 @@ b8 mtVulkanImage::initialize(mtVulkanContext* pVulkanContext,
 }
 
 void mtVulkanImage::shutdown() {
-    VkDevice device = _pVulkanContext->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     if (_imageView) {
         vkDestroyImageView(device, _imageView, 0);
         _imageView = 0;

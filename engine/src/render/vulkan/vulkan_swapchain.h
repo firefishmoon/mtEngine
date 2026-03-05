@@ -6,6 +6,8 @@
 #include "vulkan_image.h"
 #include "vulkan_framebuffer.h"
 
+#include <memory>
+
 // struct mtVkSwapChainContext {
 //
 // };
@@ -28,16 +30,17 @@ class mtVulkanDevice;
 
 class mtVulkanSwapChain {
 public:
+    mtVulkanSwapChain(mtVulkanDevice& mtVkDevice, VkSurfaceKHR surface, u32 width, u32 height);
     ~mtVulkanSwapChain();
-    b8 initialize(mtVulkanDevice& mtVkdevice, u32 width, u32 height);
+    // b8 initialize(mtVulkanDevice& mtVkdevice, u32 width, u32 height);
     b8 create(u32 width, u32 height);
     b8 shutdown();
 
     b8 recreate(u32 width, u32 height);
 
-    b8 represent();
+    b8 represent(mtVulkanContext* context);
 
-    inline mtVulkanContext* getContext() { return _context; }
+    // inline mtVulkanContext* getContext() { return _context; }
     inline VkSurfaceFormatKHR getImageFormat() const { return _imageFormat; }
     inline u32 getImageCount() const { return _imageCount; }
     inline mtVector<mtVulkanFrameBuffer>& getFramebuffers() { return _framebuffers; }
@@ -45,14 +48,17 @@ public:
     inline u32 getImageIndex() const { return _imageIndex; }
     inline void setImageIndex(u32 idx) { _imageIndex = idx; }
     inline mtVector<VkImageView>& getSwapChainImageViews() { return _swapChainImageViews; }
-    inline mtVulkanImage& getDepthAttachment() { return _depthAttachment; }
+    inline mtVulkanImage& getDepthAttachment() { return *_depthAttachment; }
     // mtVkSwapChainContext* getSwapChainContext() { return &_swapChainCtx; }
 protected:
     // access via public accessors instead of friendship
 
-    mtVulkanContext* _context;
+    // mtVulkanContext* _context;
 
     // mtVkSwapChainContext _swapChainCtx;
+    mtVulkanDevice& _mtVkDevice;
+    VkSurfaceKHR _surface;
+
     mtVkSwapchainSupportInfo _swapChainSupport;
 
     VkSurfaceFormatKHR _imageFormat;
@@ -66,6 +72,6 @@ protected:
     mtVector<VkImageView> _swapChainImageViews;
     mtVector<mtVulkanFrameBuffer> _framebuffers;
 
-    mtVulkanImage _depthAttachment;
+    std::unique_ptr<mtVulkanImage> _depthAttachment;
 
 };

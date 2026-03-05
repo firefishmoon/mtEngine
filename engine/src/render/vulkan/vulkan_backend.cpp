@@ -1,8 +1,8 @@
-#define GLFW_INCLUDE_VULKAN 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <set>
-#define VK_USE_PLATFORM_WIN32_KHR 
+#define VK_USE_PLATFORM_WIN32_KHR
 #include "vulkan_backend.h"
 #include "core/loggersystem.h"
 #include "vulkan_buffer.h"
@@ -28,21 +28,21 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
         MT_LOG_ERROR("Failed to initialize Vulkan context!");
         return false;
     }
-    
+
     MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->getImageCount();
 
-    _vulkanContext.getMainRenderPass()->initialize(
-        &_vulkanContext,
-        0,
-        0,
-        _vulkanContext.getWidth(),
-        _vulkanContext.getHeight(),
-        0.0f,
-        0.0f,
-        0.2f,
-        1.0f,
-        1.0f,
-        0.0f);
+    // _vulkanContext.getMainRenderPass()->initialize(
+    //     &_vulkanContext,
+    //     0,
+    //     0,
+    //     _vulkanContext.getWidth(),
+    //     _vulkanContext.getHeight(),
+    //     0.0f,
+    //     0.0f,
+    //     0.2f,
+    //     1.0f,
+    //     1.0f,
+    //     0.0f);
 
     _vulkanContext.getMaterialShader().initialize(&_vulkanContext);
 
@@ -76,23 +76,26 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
 
     uploadDataRange(
         _vulkanContext.getVulkanDevice()->getGraphicsCommandPool(),
-        0, 
-        _vulkanContext.getVulkanDevice()->getGraphicsQueue(), 
-        _vulkanContext.getVertexBuffer(), 
-        0, 
-        sizeof(glm::vec3) * vert_count, 
+        0,
+        _vulkanContext.getVulkanDevice()->getGraphicsQueue(),
+        _vulkanContext.getVertexBuffer(),
+        0,
+        sizeof(glm::vec3) * vert_count,
         verts);
+
+    MT_LOG_INFO("Vertex buffer uploaded with {} vertices", vert_count);
 
     uploadDataRange(
         _vulkanContext.getVulkanDevice()->getGraphicsCommandPool(),
-        0, 
-        _vulkanContext.getVulkanDevice()->getGraphicsQueue(), 
-        _vulkanContext.getIndexBuffer(), 
-        0, 
-        sizeof(u32) * index_count, 
+        0,
+        _vulkanContext.getVulkanDevice()->getGraphicsQueue(),
+        _vulkanContext.getIndexBuffer(),
+        0,
+        sizeof(u32) * index_count,
         indices);
 
-    
+    MT_LOG_INFO("Index buffer uploaded with {} indices", index_count);
+
     MT_LOG_INFO("Vulkan Backend Initialized");
 
     return true;
@@ -100,11 +103,11 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
 
 b8 mtVulkanBackend::shutdown() {
     vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
-    _vulkanContext.getMainRenderPass()->shutdown(); 
+    // _vulkanContext.getMainRenderPass()->shutdown();
     // _inFlightFences.clear();
     // _renderFinishedSemaphores.clear();
     // _imageAvailableSemaphores.clear();
-    
+
     // _vulkanContext.shutdown();
     // _renderPass = VK_NULL_HANDLE;
 
@@ -115,16 +118,16 @@ b8 mtVulkanBackend::shutdown() {
 b8 mtVulkanBackend::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-    
+
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-    
+
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-    
+
     for (const auto& extension : availableExtensions) {
         requiredExtensions.erase(extension.extensionName);
     }
-    
+
     return requiredExtensions.empty();
 }
 
@@ -162,7 +165,7 @@ b8 mtVulkanBackend::recreateSwapChain() {
     }
 
     createFramebuffers();
-    
+
     _framebufferResized = false;
     MT_LOG_INFO("VulkanBackend recreateSwapChain success.");
     return true;
@@ -207,7 +210,7 @@ b8 mtVulkanBackend::renderPrepare() {
 
 b8 mtVulkanBackend::renderBegin() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     commandBuffer.begin();
     mtVulkanFrameBuffer& frameBuffer = _vulkanContext.getVulkanSwapChain()->getFramebuffers()[_vulkanContext.getVulkanSwapChain()->getImageIndex()];
@@ -235,12 +238,12 @@ b8 mtVulkanBackend::renderBegin() {
 
     _vulkanContext.getMainRenderPass()->begin(commandBuffer, frameBuffer);
 
-    return true; 
+    return true;
 }
 
 b8 mtVulkanBackend::renderEnd() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     _vulkanContext.getMainRenderPass()->end(commandBuffer);
 
@@ -271,15 +274,14 @@ b8 mtVulkanBackend::renderEnd() {
 }
 
 b8 mtVulkanBackend::renderPresent() {
-    _vulkanContext.getVulkanSwapChain()->represent();
+    _vulkanContext.getVulkanSwapChain()->represent(&_vulkanContext);
     return true;
 }
 
 void mtVulkanBackend::uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, mtVulkanBuffer& buffer, u64 offset, u64 size, void* data) {
     VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    mtVulkanBuffer staging;
-    staging.initialize(&_vulkanContext, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true);
-
+    mtVulkanBuffer staging(*_vulkanContext.getVulkanDevice(), size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true);
+    // staging.initialize(&_vulkanContext, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true);
     // Load the data into the staging buffer.
     staging.loadData(0, size, 0, data);
 
@@ -287,7 +289,7 @@ void mtVulkanBackend::uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue
     staging.copyTo(pool, fence, queue, 0, buffer.getHandle(), offset, size);
 
     // Clean up the staging buffer.
-    staging.shutdown();
+    // staging.shutdown();
 }
 
 void mtVulkanBackend::updateGlobalState(
@@ -299,7 +301,7 @@ void mtVulkanBackend::updateGlobalState(
     ) {
 
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     // vulkan_object_shader_use(&context, &context.object_shader);
     mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
@@ -317,7 +319,7 @@ void mtVulkanBackend::updateGlobalState(
 
 void mtVulkanBackend::updateObject(glm::mat4 model) {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = (*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
     mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
 
     materialShader.updateObject(model);

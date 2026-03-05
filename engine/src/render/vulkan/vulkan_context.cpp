@@ -41,23 +41,23 @@ b8 mtVulkanContext::initialize(u32 width, u32 height) {
     MT_LOG_INFO("Vulkan API Version: {}.{}.{}", _apiMajor, _apiMinor, _apiPatch);
 
     _instance = std::make_unique<mtVulkanInstance>();
-     // create surface
-    mtPlatformData* data = mtApplication::getInstance()->getPlatformData();
-    VK_CHECK(glfwCreateWindowSurface(_instance->getHandle(), data->window, 0, &_surface));
 
-    _vulkanDevice = std::make_unique<mtVulkanDevice>(*_instance, _surface);
+    _surface = std::make_unique<mtVulkanSurface>(*_instance);
 
-    // if (!_vulkanDevice.initialize(this)) {
-    //     MT_LOG_ERROR("Failed to initialize Vulkan Device");
-    //     return false;
-    // }
+    _vulkanDevice = std::make_unique<mtVulkanDevice>(*_instance, _surface->getHandle());
 
-    // initialize swapchain
-    _vulkanSwapChain.initialize(this, _width, _height);
+    _vulkanSwapChain = std::make_unique<mtVulkanSwapChain>(*_vulkanDevice, _surface->getHandle(), _width, _height);
+    // _vulkanSwapChain.initialize(this, _width, _height);
 
+    _mainRenderPass = std::make_unique<mtVulkanRenderPass>(
+        *_vulkanDevice,
+        *_vulkanSwapChain,
+        0.0f, 0.0f, (f32)_width, (f32)_height,
+        0.0f, 0.0f, 0.2f, 1.0f,
+        1.0f, 0.0f);
 
     // semaphores & fences
-    u32 MAX_FRAMES_IN_FLIGHT = _vulkanSwapChain.getImageCount();
+    u32 MAX_FRAMES_IN_FLIGHT = _vulkanSwapChain->getImageCount();
 
     _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -81,8 +81,9 @@ b8 mtVulkanContext::initialize(u32 width, u32 height) {
 
     // command buffer
     _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    for (auto& cmdBuffer : _commandBuffers) {
-        cmdBuffer.initialize(this, true);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        // cmdBuffer.initialize(this, true);
+        _commandBuffers[i] = std::make_unique<mtVulkanCommandBuffer>(*_vulkanDevice, true);
     }
 
 
@@ -96,27 +97,27 @@ b8 mtVulkanContext::shutdown() {
     vkDeviceWaitIdle(_vulkanDevice->getLogicalDevice());
 
     _objectShader.shutdown();
-    _indexBuffer.shutdown();
-    _vertexBuffer.shutdown();
+    // _indexBuffer.shutdown();
+    // _vertexBuffer.shutdown();
 
-    for (auto& commandbuffer : _commandBuffers) {
-        commandbuffer.shutdown();
-    }
+    // for (auto& commandbuffer : _commandBuffers) {
+    //     commandbuffer.shutdown();
+    // }
 
 
     VkDevice device = _vulkanDevice->getLogicalDevice();
-    for (u32 i = 0; i < _vulkanSwapChain.getImageCount(); ++i) {
+    for (u32 i = 0; i < _vulkanSwapChain->getImageCount(); ++i) {
         vkDestroySemaphore(device, _imageAvailableSemaphores[i], 0);
         vkDestroySemaphore(device, _renderFinishedSemaphores[i], 0);
         vkDestroyFence(device, _inFlightFences[i], 0);
     }
 
 
-    _vulkanSwapChain.shutdown();
+    // _vulkanSwapChain.shutdown();
 
     // _vulkanDevice.shutdown();
 
-    vkDestroySurfaceKHR(_instance->getHandle(), _surface, 0);
+    // vkDestroySurfaceKHR(_instance->getHandle(), _surface, 0);
 
     MT_LOG_INFO("Vulkan Context Shutdown");
     return true;
@@ -126,26 +127,40 @@ b8 mtVulkanContext::createBuffers() {
     VkMemoryPropertyFlagBits memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
     const u64 vertexBufferSize = sizeof(glm::vec3) * 1024;
-    if (!_vertexBuffer.initialize(this,
-                                  vertexBufferSize,
-                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                  memoryPropertyFlags,
-                                  true)) {
-        MT_LOG_ERROR("Error creating vertex buffer.");
-        return false;
-    }
+    // if (!_vertexBuffer.initialize(this,
+    //                               vertexBufferSize,
+    //                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    //                               memoryPropertyFlags,
+    //                               true)) {
+    //     MT_LOG_ERROR("Error creating vertex buffer.");
+    //     return false;
+    // }
+    _vertexBuffer = std::make_unique<mtVulkanBuffer>(
+        *_vulkanDevice,
+        vertexBufferSize,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        memoryPropertyFlags,
+        true
+    );
 
     MT_LOG_INFO("Vertex buffer created, size: {}", vertexBufferSize);
 
     const u64 indexBufferSize = sizeof(u32) * 1024;
-    if (!_indexBuffer.initialize(this,
-                                  indexBufferSize,
-                                  VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                  memoryPropertyFlags,
-                                  true)) {
-        MT_LOG_ERROR("Error creating index buffer.");
-        return false;
-    }
+    // if (!_indexBuffer.initialize(this,
+    //                               indexBufferSize,
+    //                               VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    //                               memoryPropertyFlags,
+    //                               true)) {
+    //     MT_LOG_ERROR("Error creating index buffer.");
+    //     return false;
+    // }
+    _indexBuffer = std::make_unique<mtVulkanBuffer>(
+        *_vulkanDevice,
+        indexBufferSize,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        memoryPropertyFlags,
+        true
+    );
     MT_LOG_INFO("Index buffer created, size: {}", indexBufferSize);
     return true;
 }

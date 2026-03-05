@@ -6,6 +6,7 @@
 #include "render/vulkan/vulkan_pipeline.h"
 #include "render/render_types.h"
 #include <glm/glm.hpp>
+#include <memory>
 
 class mtVulkanContext;
 
@@ -50,7 +51,7 @@ private:
 
     GlobalUniformObject _globalUBO;
 
-    mtVulkanBuffer _globalUniformBuffer;
+    std::unique_ptr<mtVulkanBuffer> _globalUniformBuffer;
 
     mtVulkanPipeline _pipeline;
 };

@@ -1,16 +1,28 @@
 #include "vulkan_renderpass.h"
 #include "vulkan_framebuffer.h"
 #include "vulkan_command_buffer.h"
+#include "vulkan_device.h"
+#include "vulkan_swapchain.h"
 #include "vulkan_context.h"
 
 #include "core/loggersystem.h"
 
-b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
-                                f32 x, f32 y, f32 w, f32 h,
+mtVulkanRenderPass::mtVulkanRenderPass(
+        mtVulkanDevice& mtVkDevice,
+        mtVulkanSwapChain& mtVkSwapChain,
+        f32 x, f32 y, f32 w, f32 h,
+        f32 r, f32 g, f32 b, f32 a,
+        f32 depth, f32 stencil
+    ) : _mtVkDevice(mtVkDevice), _mtVkSwapChain(mtVkSwapChain) {
+    if (!initialize(x, y, w, h, r, g, b, a, depth, stencil)) {
+        throw std::runtime_error("Failed to create Vulkan Render Pass!");
+    }
+}
+
+b8 mtVulkanRenderPass::initialize(f32 x, f32 y, f32 w, f32 h,
                                 f32 r, f32 g, f32 b, f32 a,
                                 f32 depth, f32 stencil) {
 
-    _context = context;
     _x = x;
     _y = y;
     _w = w;
@@ -25,7 +37,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
     VkAttachmentDescription attachment_descriptions[attachment_description_count];
 
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = _context->getVulkanSwapChain()->getImageFormat().format;
+    colorAttachment.format = _mtVkSwapChain.getImageFormat().format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -55,7 +67,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
 
 
     VkAttachmentDescription depth_attachment = {};
-    depth_attachment.format = _context->getVulkanDevice()->getDepthFormat();
+    depth_attachment.format = _mtVkDevice.getDepthFormat();
     depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -81,7 +93,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_handle) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create render pass");
         return false;
@@ -91,7 +103,7 @@ b8 mtVulkanRenderPass::initialize(mtVulkanContext* context,
 }
 
 b8 mtVulkanRenderPass::shutdown() {
-    vkDestroyRenderPass(_context->getVulkanDevice()->getLogicalDevice(), _handle, 0);
+    vkDestroyRenderPass(_mtVkDevice.getLogicalDevice(), _handle, 0);
     return true;
 }
 
