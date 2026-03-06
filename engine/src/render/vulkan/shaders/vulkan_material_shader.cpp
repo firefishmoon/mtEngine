@@ -8,8 +8,14 @@
 
 #define BUILTIN_SHADER_NAME_OBJECT "Builtin.Shader"
 
-b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
-    _context = context;
+mtVulkanMaterialShader::mtVulkanMaterialShader(mtVulkanContext& context) : _context(context) {
+    if (!initialize()) {
+        MT_LOG_ERROR("Failed to initialize Vulkan material shader.");
+        throw std::runtime_error("Failed to initialize Vulkan material shader.");
+    }
+}
+
+b8 mtVulkanMaterialShader::initialize() {
     // Shader module init per stage.
     char stage_type_strs[SHADER_STAGE_COUNT][5] = {"vert", "frag"};
     VkShaderStageFlagBits stage_types[SHADER_STAGE_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
@@ -21,7 +27,7 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
         }
     }
 
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
     // Global Descriptors
     VkDescriptorSetLayoutBinding global_ubo_layout_binding;
     global_ubo_layout_binding.binding = 0;
@@ -42,12 +48,12 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     // Global descriptor pool: Used for global items such as view/projection matrix.
     VkDescriptorPoolSize global_pool_size;
     global_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    global_pool_size.descriptorCount = context->getVulkanSwapChain()->getImageCount();
+    global_pool_size.descriptorCount = _context.getVulkanSwapChain()->getImageCount();
 
     VkDescriptorPoolCreateInfo global_pool_info = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     global_pool_info.poolSizeCount = 1;
     global_pool_info.pPoolSizes = &global_pool_size;
-    global_pool_info.maxSets = context->getVulkanSwapChain()->getImageCount();
+    global_pool_info.maxSets = _context.getVulkanSwapChain()->getImageCount();
     VK_CHECK(vkCreateDescriptorPool(
         device,
         &global_pool_info,
@@ -57,17 +63,17 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
      // Pipeline creation
     VkViewport viewport;
     viewport.x = 0.0f;
-    viewport.y = (f32)context->getHeight();
-    viewport.width = (f32)context->getWidth();
-    viewport.height = -(f32)context->getHeight();
+    viewport.y = (f32)_context.getHeight();
+    viewport.width = (f32)_context.getWidth();
+    viewport.height = -(f32)_context.getHeight();
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     // Scissor
     VkRect2D scissor;
     scissor.offset.x = scissor.offset.y = 0;
-    scissor.extent.width = context->getWidth();
-    scissor.extent.height = context->getHeight();
+    scissor.extent.width = _context.getWidth();
+    scissor.extent.height = _context.getHeight();
 
     // Attributes
     u32 offset = 0;
@@ -101,9 +107,9 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
         stage_create_infos[i] = _stages[i].shaderStageCreateInfo;
     }
 
-    if (!_pipeline.initialize(
-        context,
-        context->getMainRenderPass(),
+    _pipeline = std::make_unique<mtVulkanPipeline>(
+        *_context.getVulkanDevice(),
+        _context.getMainRenderPass(),
         attribute_count,
         attribute_descriptions,
         descriptor_set_layout_count,
@@ -113,10 +119,24 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
         viewport,
         scissor,
         false
-    )) {
-        MT_LOG_ERROR("Failed to load graphics pipeline for shader.");
-        return false;
-    }
+    );
+
+    // if (!_pipeline.initialize(
+    //     context,
+    //     context->getMainRenderPass(),
+    //     attribute_count,
+    //     attribute_descriptions,
+    //     descriptor_set_layout_count,
+    //     layouts,
+    //     SHADER_STAGE_COUNT,
+    //     stage_create_infos,
+    //     viewport,
+    //     scissor,
+    //     false
+    // )) {
+    //     MT_LOG_ERROR("Failed to load graphics pipeline for shader.");
+    //     return false;
+    // }
 
     // Create uniform buffer.
     // if (!_globalUniformBuffer.initialize(
@@ -131,8 +151,8 @@ b8 mtVulkanMaterialShader::initialize(mtVulkanContext *context) {
     // }
 
     _globalUniformBuffer = std::make_unique<mtVulkanBuffer>(
-        *context->getVulkanDevice(),
-        sizeof(GlobalUniformObject),
+        *_context.getVulkanDevice(),
+        sizeof(mtGlobalUniformObject),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         true
@@ -180,7 +200,7 @@ b8 mtVulkanMaterialShader::createShaderModule(
     shaderStages[stageIndex].createInfo.codeSize = fileSize;
     shaderStages[stageIndex].createInfo.pCode = (u32*)buffer.data();
 
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
 
     VK_CHECK(vkCreateShaderModule(
         device,
@@ -199,9 +219,9 @@ b8 mtVulkanMaterialShader::createShaderModule(
 
 void mtVulkanMaterialShader::shutdown() {
 
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
     // _globalUniformBuffer.shutdown();
-    _pipeline.shutdown();
+    // _pipeline.shutdown();
     // Destroy global descriptor pool.
     vkDestroyDescriptorPool(device, _globalDescriptorPool, 0);
 
@@ -216,18 +236,18 @@ void mtVulkanMaterialShader::shutdown() {
 }
 
 void mtVulkanMaterialShader::use() {
-    auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context->getCurrentFrame()];
-    _pipeline.bind(&commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    auto _pCommandBuffers = _context.getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context.getCurrentFrame()];
+    _pipeline->bind(&commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 }
 
 void mtVulkanMaterialShader::updateGlobalState() {
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
-    u32 image_index = _context->getCurrentFrame();
+    VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
+    u32 image_index = _context.getCurrentFrame();
 
     // Configure the descriptors for the given index.
-    u32 range = sizeof(GlobalUniformObject);
+    u32 range = sizeof(mtGlobalUniformObject);
     u64 offset = 0;
 
     // Copy data to buffer
@@ -250,18 +270,18 @@ void mtVulkanMaterialShader::updateGlobalState() {
     vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, 0);
 
     // Bind the global descriptor set to the command buffer.
-    auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context->getCurrentFrame()];
+    auto _pCommandBuffers = _context.getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context.getCurrentFrame()];
     VkCommandBuffer command_buffer = commandBuffer.getHandle();
     VkDescriptorSet global_descriptor = _globalDescriptorSets[image_index];
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.getPipelineLayout(), 0, 1, &global_descriptor, 0, 0);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->getPipelineLayout(), 0, 1, &global_descriptor, 0, 0);
 }
 
 
 void mtVulkanMaterialShader::updateObject(glm::mat4 model) {
-    u32 image_index = _context->getCurrentFrame();
-    auto _pCommandBuffers = _context->getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context->getCurrentFrame()];
+    u32 image_index = _context.getCurrentFrame();
+    auto _pCommandBuffers = _context.getVulkanCommandBuffers();
+    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_context.getCurrentFrame()];
 
-    vkCmdPushConstants(commandBuffer.getHandle(), _pipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
+    vkCmdPushConstants(commandBuffer.getHandle(), _pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
 }

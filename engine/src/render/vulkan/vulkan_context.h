@@ -48,7 +48,7 @@ public:
 
     inline mtVulkanBuffer& getVertexBuffer() { return *_vertexBuffer; }
     inline mtVulkanBuffer& getIndexBuffer() { return *_indexBuffer; }
-    inline mtVulkanMaterialShader& getMaterialShader() { return _objectShader; }
+    inline mtVulkanMaterialShader& getMaterialShader() { return *_objectShader; }
 
 protected:
     b8 createBuffers();
@@ -82,5 +82,5 @@ protected:
 
     u32 _currentFrame;
 
-    mtVulkanMaterialShader _objectShader;
+    std::unique_ptr<mtVulkanMaterialShader> _objectShader;
 };

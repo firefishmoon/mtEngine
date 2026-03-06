@@ -89,6 +89,8 @@ b8 mtVulkanContext::initialize(u32 width, u32 height) {
 
     createBuffers();
 
+    _objectShader = std::make_unique<mtVulkanMaterialShader>(*this);
+
     MT_LOG_INFO("Vulkan Context Initialized");
     return true;
 }
@@ -96,7 +98,7 @@ b8 mtVulkanContext::initialize(u32 width, u32 height) {
 b8 mtVulkanContext::shutdown() {
     vkDeviceWaitIdle(_vulkanDevice->getLogicalDevice());
 
-    _objectShader.shutdown();
+    // _objectShader.shutdown();
     // _indexBuffer.shutdown();
     // _vertexBuffer.shutdown();
 

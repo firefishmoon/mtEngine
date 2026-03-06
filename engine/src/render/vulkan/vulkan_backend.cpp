@@ -44,7 +44,7 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
     //     1.0f,
     //     0.0f);
 
-    _vulkanContext.getMaterialShader().initialize(&_vulkanContext);
+    // _vulkanContext.getMaterialShader().initialize(&_vulkanContext);
 
     if (!createFramebuffers()) {
         MT_LOG_ERROR("Failed to create framebuffers!");
