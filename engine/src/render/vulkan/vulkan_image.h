@@ -23,6 +23,17 @@ public:
         shutdown();
     }
 
+    void transitionLayout(
+        VkCommandBuffer commandBuffer,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout
+    );
+
+    void copyFromBuffer(
+        VkCommandBuffer commandBuffer,
+        VkBuffer buffer
+    );
+
     inline VkImageView getImageView() const { return _imageView; }
 
 

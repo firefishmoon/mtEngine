@@ -9,6 +9,7 @@
 #include <windows.h>
 #include <assert.h>
 #include <glm/glm.hpp>
+#include "../render_types.h"
 
 constexpr bool enableValidationLayers = true;
 const std::vector<const char*> validationLayers = {
@@ -53,23 +54,31 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
 
     // test code
     const u32 vert_count = 4;
-    glm::vec3 verts[vert_count];
+    mtVertex verts[vert_count];
 
-    verts[0].x = -0.5f;
-    verts[0].y = -0.5f;
-    verts[0].z = 0.0f;
+    verts[0].position.x = -0.5f;
+    verts[0].position.y = -0.5f;
+    verts[0].position.z = 0.0f;
+    verts[0].uv.x = 0.0f;
+    verts[0].uv.y = 0.0f;
 
-    verts[1].y = 0.5f;
-    verts[1].x = 0.5f;
-    verts[1].z = 0.0f;
+    verts[1].position.y = 0.5f;
+    verts[1].position.x = 0.5f;
+    verts[1].position.z = 0.0f;
+    verts[0].uv.x = 1.0f;
+    verts[0].uv.y = 1.0f;
 
-    verts[2].x = -0.5f;
-    verts[2].y = 0.5f;
-    verts[2].z = 0.0f;
+    verts[2].position.x = -0.5f;
+    verts[2].position.y = 0.5f;
+    verts[2].position.z = 0.0f;
+    verts[0].uv.x = 0.0f;
+    verts[0].uv.y = 1.0f;
 
-    verts[3].x = 0.5f;
-    verts[3].y = -0.5f;
-    verts[3].z = 0.0f;
+    verts[3].position.x = 0.5f;
+    verts[3].position.y = -0.5f;
+    verts[3].position.z = 0.0f;
+    verts[0].uv.x = 1.0f;
+    verts[0].uv.y = 0.0f;
 
     const u32 index_count = 6;
     u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
@@ -80,7 +89,7 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
         _vulkanContext.getVulkanDevice()->getGraphicsQueue(),
         _vulkanContext.getVertexBuffer(),
         0,
-        sizeof(glm::vec3) * vert_count,
+        sizeof(mtVertex) * vert_count,
         verts);
 
     MT_LOG_INFO("Vertex buffer uploaded with {} vertices", vert_count);
@@ -317,12 +326,12 @@ void mtVulkanBackend::updateGlobalState(
 
 }
 
-void mtVulkanBackend::updateObject(glm::mat4 model) {
+void mtVulkanBackend::updateObject(mtGeometryData& geometry) {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
     mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
     mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
 
-    materialShader.updateObject(model);
+    materialShader.updateObject(geometry);
 
     // TODO: temporary test code
     materialShader.use();
@@ -338,4 +347,113 @@ void mtVulkanBackend::updateObject(glm::mat4 model) {
     // Issue the draw.
     vkCmdDrawIndexed(commandBuffer.getHandle(), 6, 1, 0, 0, 0);
 
+}
+
+mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 width, s32 height, s32 channelCount, const u8* pixels, b8 hasTransparency) {
+
+    mtTextureHandle handle;
+    handle.internalData = MT_ALLOCATE(mtMemTag::RENDERING, sizeof(mtTextureInternalData));
+    mtTextureInternalData* internalData = (mtTextureInternalData*)handle.internalData;
+
+    VkDeviceSize imageSize = width * height * channelCount;
+    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
+    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+
+    mtVulkanBuffer stagingBuffer(*_vulkanContext.getVulkanDevice(), imageSize, usage, properties, true);
+
+    stagingBuffer.loadData(0, imageSize, 0, (void*)pixels);
+
+    MT_LOG_INFO("2");
+    internalData->image = std::make_unique<mtVulkanImage>(
+        *_vulkanContext.getVulkanDevice(),
+        width,
+        height,
+        imageFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        true,
+        VK_IMAGE_ASPECT_COLOR_BIT,
+        1);
+
+    MT_LOG_INFO("3");
+    // mtVulkanImage textureImage(
+    //     *_vulkanContext.getVulkanDevice(),
+    //     width,
+    //     height,
+    //     imageFormat,
+    //     VK_IMAGE_TILING_OPTIMAL,
+    //     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    //     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    //     true,
+    //     VK_IMAGE_ASPECT_COLOR_BIT,
+    //     1);
+
+    mtVulkanCommandBuffer tempBuffer(*_vulkanContext.getVulkanDevice(), _vulkanContext.getVulkanDevice()->getGraphicsCommandPool());
+    tempBuffer.begin();
+
+    // Transition the image layout to be optimal for receiving data.
+    internalData->image->transitionLayout(tempBuffer.getHandle(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // Copy the data from the staging buffer to the image.
+    internalData->image->copyFromBuffer(tempBuffer.getHandle(), stagingBuffer.getHandle());
+
+    // Transition the image layout to be optimal for shader access.
+    internalData->image->transitionLayout(tempBuffer.getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    tempBuffer.end();
+
+    MT_LOG_INFO("4");
+    // Submit the command buffer and wait for it to finish.
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    VkCommandBuffer cb = tempBuffer.getHandle();
+    submitInfo.pCommandBuffers = &cb;
+
+    if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        MT_LOG_ERROR("Failed to submit command buffer for texture upload!");
+    }
+    vkQueueWaitIdle(_vulkanContext.getVulkanDevice()->getGraphicsQueue());
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    VkSampler textureSampler;
+    if (vkCreateSampler(_vulkanContext.getVulkanDevice()->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+        MT_LOG_ERROR("Failed to create texture sampler!");
+    }
+
+    internalData->sampler = textureSampler;
+
+    return handle;
+}
+
+
+void mtVulkanBackend::destroyTexture(mtTextureHandle& texture) {
+    if (texture.internalData) {
+        mtTextureInternalData* internalData = (mtTextureInternalData*)texture.internalData;
+        internalData->image->~mtVulkanImage();
+        vkDestroySampler(_vulkanContext.getVulkanDevice()->getLogicalDevice(), internalData->sampler, nullptr);
+        MT_FREE(texture.internalData);
+        texture.internalData = nullptr;
+    }
 }

@@ -128,7 +128,7 @@ b8 mtVulkanContext::shutdown() {
 b8 mtVulkanContext::createBuffers() {
     VkMemoryPropertyFlagBits memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-    const u64 vertexBufferSize = sizeof(glm::vec3) * 1024;
+    const u64 vertexBufferSize = sizeof(mtVertex) * 1024;
     // if (!_vertexBuffer.initialize(this,
     //                               vertexBufferSize,
     //                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

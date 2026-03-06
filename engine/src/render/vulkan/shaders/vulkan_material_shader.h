@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 
 class mtVulkanContext;
+class mtVulkanImage;
 
 struct mtVulkanShaderStage {
     VkShaderModuleCreateInfo createInfo;
@@ -17,6 +18,11 @@ struct mtVulkanShaderStage {
 };
 
 #define SHADER_STAGE_COUNT 2
+
+struct mtTextureInternalData {
+    std::unique_ptr<mtVulkanImage> image;
+    VkSampler sampler;
+};
 
 class mtVulkanMaterialShader {
 public:
@@ -27,7 +33,7 @@ public:
 
     void updateGlobalState();
 
-    void updateObject(glm::mat4 model);
+    void updateObject(mtGeometryData& geometry);
 
     inline void setProjection(glm::mat4 &projection) { _globalUBO.projection = projection; }
     inline void setView(glm::mat4 &view) { _globalUBO.view = view; }
@@ -46,12 +52,23 @@ private:
     VkDescriptorPool _globalDescriptorPool;
     VkDescriptorSetLayout _globalDescriptorSetLayout;
 
+    VkDescriptorPool _objectDescriptorPool;
+    VkDescriptorSetLayout _objectDescriptorSetLayout;
+
     VkDescriptorSet _globalDescriptorSets[3];
 
     mtGlobalUniformObject _globalUBO;
 
     std::unique_ptr<mtVulkanBuffer> _globalUniformBuffer;
 
+    // Object uniform buffers.
+    std::unique_ptr<mtVulkanBuffer> object_uniform_buffer;
+    // TODO: manage a free list of some kind here instead.
+    u32 object_uniform_buffer_index;
+
     // mtVulkanPipeline _pipeline;
     std::unique_ptr<mtVulkanPipeline> _pipeline;
+
+    // TEST CODE: temporary storage for object descriptor sets.
+    VkDescriptorSet _objectDescriptorSets[3];
 };
