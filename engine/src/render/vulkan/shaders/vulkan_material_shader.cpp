@@ -20,6 +20,8 @@ b8 mtVulkanMaterialShader::initialize() {
     char stage_type_strs[SHADER_STAGE_COUNT][5] = {"vert", "frag"};
     VkShaderStageFlagBits stage_types[SHADER_STAGE_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
 
+    memset(_stages, 0, sizeof(mtVulkanShaderStage) * SHADER_STAGE_COUNT);
+
     for (u32 i = 0; i < SHADER_STAGE_COUNT; ++i) {
         if (!createShaderModule(BUILTIN_SHADER_NAME_OBJECT, stage_type_strs[i], stage_types[i], i, _stages)) {
             MT_LOG_ERROR("Unable to create {} shader module for '{}'.", stage_type_strs[i], BUILTIN_SHADER_NAME_OBJECT);
@@ -205,7 +207,7 @@ b8 mtVulkanMaterialShader::initialize() {
     VkDescriptorSetAllocateInfo obj_alloc_info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
     obj_alloc_info.descriptorPool = _objectDescriptorPool;
     obj_alloc_info.descriptorSetCount = 3;
-    obj_alloc_info.pSetLayouts = global_layouts;
+    obj_alloc_info.pSetLayouts = object_layouts;
     VK_CHECK(vkAllocateDescriptorSets(device, &obj_alloc_info, _objectDescriptorSets));
     return true;
 }
@@ -351,7 +353,7 @@ void mtVulkanMaterialShader::updateObject(mtGeometryData &geometry) {
     VkDescriptorImageInfo image_infos[1];
 
     if (geometry.texture.internalData != 0) {
-        MT_LOG_ERROR("Geometry does not have a texture assigned, but the shader expects one.");
+        // MT_LOG_ERROR("Geometry does not have a texture assigned, but the shader expects one.");
         for (u32 sampler_index = 0; sampler_index < sampler_count; ++sampler_index) {
 
             mtTextureInternalData *internal_data = (mtTextureInternalData *)geometry.texture.internalData;

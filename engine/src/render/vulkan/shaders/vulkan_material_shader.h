@@ -20,7 +20,7 @@ struct mtVulkanShaderStage {
 #define SHADER_STAGE_COUNT 2
 
 struct mtTextureInternalData {
-    std::unique_ptr<mtVulkanImage> image;
+    mtVulkanImage* image;
     VkSampler sampler;
 };
 

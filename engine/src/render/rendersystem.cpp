@@ -10,7 +10,7 @@
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
-mtGeometryData geometry;
+mtGeometryData geometry = {};
 
 b8 mtRenderSystem::initialize() {
     // Initialize the rendering backend based on settings
@@ -54,6 +54,7 @@ b8 mtRenderSystem::initialize() {
     const u32 channels = 4;
     const u32 pixel_count = tex_dimension * tex_dimension;
     u8 pixels[pixel_count * channels];
+    memset(pixels, 255, sizeof(u8) * pixel_count * channels);
     // Each pixel.
     for (u64 row = 0; row < tex_dimension; ++row) {
         for (u64 col = 0; col < tex_dimension; ++col) {
@@ -73,14 +74,14 @@ b8 mtRenderSystem::initialize() {
         }
     }
 
-    // geometry.texture = _backend->createTexture(
-    //     "default",
-    //     tex_dimension,
-    //     tex_dimension,
-    //     channels,
-    //     pixels,
-    //     false
-    // );
+    geometry.texture = _backend->createTexture(
+        "default",
+        tex_dimension,
+        tex_dimension,
+        channels,
+        pixels,
+        false
+    );
 
     MT_LOG_INFO("Render System Initialized");
     return true;
@@ -89,6 +90,7 @@ b8 mtRenderSystem::initialize() {
 b8 mtRenderSystem::shutdown() {
     // Shutdown the rendering backend
     if (_backend) {
+        _backend->destroyTexture(geometry.texture);
         MT_DELETE((mtVulkanBackend*)_backend, mtVulkanBackend);
     }
     return true;

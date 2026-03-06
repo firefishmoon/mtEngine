@@ -49,8 +49,10 @@ private:
     void shutdown();
 
     // mtVulkanContext* _context;
-    VkPipeline _handle;
-    VkPipelineLayout _pipelineLayout;
+    // handles start life null so destructor/shutdown can safely run even if
+    // initialization fails or an exception is thrown.
+    VkPipeline _handle = VK_NULL_HANDLE;
+    VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
 
     mtVulkanDevice& _mtVkDevice;
 };

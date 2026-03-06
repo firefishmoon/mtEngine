@@ -65,20 +65,20 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
     verts[1].position.y = 0.5f;
     verts[1].position.x = 0.5f;
     verts[1].position.z = 0.0f;
-    verts[0].uv.x = 1.0f;
-    verts[0].uv.y = 1.0f;
+    verts[1].uv.x = 1.0f;
+    verts[1].uv.y = 1.0f;
 
     verts[2].position.x = -0.5f;
     verts[2].position.y = 0.5f;
     verts[2].position.z = 0.0f;
-    verts[0].uv.x = 0.0f;
-    verts[0].uv.y = 1.0f;
+    verts[2].uv.x = 0.0f;
+    verts[2].uv.y = 1.0f;
 
     verts[3].position.x = 0.5f;
     verts[3].position.y = -0.5f;
     verts[3].position.z = 0.0f;
-    verts[0].uv.x = 1.0f;
-    verts[0].uv.y = 0.0f;
+    verts[3].uv.x = 1.0f;
+    verts[3].uv.y = 0.0f;
 
     const u32 index_count = 6;
     u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
@@ -276,6 +276,7 @@ b8 mtVulkanBackend::renderEnd() {
 
     if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo, _vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()]) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to submit draw command buffer!");
+        throw std::runtime_error("Failed to submit draw command buffer!");
         return false;
     }
 
@@ -366,8 +367,10 @@ mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 widt
 
     stagingBuffer.loadData(0, imageSize, 0, (void*)pixels);
 
-    MT_LOG_INFO("2");
-    internalData->image = std::make_unique<mtVulkanImage>(
+    //MT_LOG_INFO("internalData: {}, {}", (long long)internalData->image, internalData->sampler);
+
+    //internalData->image = std::make_unique<mtVulkanImage>(
+    internalData->image = new mtVulkanImage(
         *_vulkanContext.getVulkanDevice(),
         width,
         height,
@@ -379,7 +382,6 @@ mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 widt
         VK_IMAGE_ASPECT_COLOR_BIT,
         1);
 
-    MT_LOG_INFO("3");
     // mtVulkanImage textureImage(
     //     *_vulkanContext.getVulkanDevice(),
     //     width,
@@ -406,7 +408,6 @@ mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 widt
 
     tempBuffer.end();
 
-    MT_LOG_INFO("4");
     // Submit the command buffer and wait for it to finish.
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -450,8 +451,9 @@ mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 widt
 
 void mtVulkanBackend::destroyTexture(mtTextureHandle& texture) {
     if (texture.internalData) {
+        vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
         mtTextureInternalData* internalData = (mtTextureInternalData*)texture.internalData;
-        internalData->image->~mtVulkanImage();
+        delete internalData->image;
         vkDestroySampler(_vulkanContext.getVulkanDevice()->getLogicalDevice(), internalData->sampler, nullptr);
         MT_FREE(texture.internalData);
         texture.internalData = nullptr;
