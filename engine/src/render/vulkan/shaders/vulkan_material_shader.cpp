@@ -328,7 +328,7 @@ void mtVulkanMaterialShader::updateObject(mtGeometryData &geometry) {
     u32 descriptor_index = 0;
 
     mtObjectUniformObject object_ubo;
-    object_ubo.diffuseColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    object_ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
     object_uniform_buffer->loadData(0, sizeof(mtObjectUniformObject), 0, &object_ubo);
 

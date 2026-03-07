@@ -125,6 +125,11 @@ int main() {
 
     mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_PRESS, [](mtEvent event) {
         MT_LOG_INFO("Key pressed: {}", event.data);
+
+        if (event.data == (u32)mtInputKeys::KEY_SPACE) {
+            mtEventSystem::getInstance()->emitEvent({mtEventType::DEBUG, 0.0f});
+        }
+
     });
     mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_RELEASE, [](mtEvent event) {
         MT_LOG_INFO("Key release: {}", event.data);

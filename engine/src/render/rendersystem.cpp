@@ -7,10 +7,38 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
 mtGeometryData geometry = {};
+mtTextureHandle defaultTexture = {};
+mtTextureHandle testTexture = {};
+
+static b8 loadTextureFromFile(mtIRenderBackend* backend, const std::string& name, mtTextureHandle& texture) {
+    stbi_set_flip_vertically_on_load(true);
+    std::string fileName = std::format("assets/textures/{}.png", name);
+    u8* data = stbi_load(fileName.c_str(), (int*)&texture.width, (int*)&texture.height, (int*)&texture.channelCount, 4);
+    if (!data) {
+        MT_LOG_ERROR("Failed to load texture from file: {}", fileName);
+        return false;
+    }
+
+    MT_LOG_INFO("Loaded texture '{}' with dimensions: {}x{} and channels: {}", name, texture.width, texture.height, texture.channelCount);
+
+    testTexture = backend->createTexture(
+        name,
+        texture.width,
+        texture.height,
+        4,
+        data,
+        false
+    );
+
+    stbi_image_free(data);
+    return true;
+}
 
 b8 mtRenderSystem::initialize() {
     // Initialize the rendering backend based on settings
@@ -74,7 +102,7 @@ b8 mtRenderSystem::initialize() {
         }
     }
 
-    geometry.texture = _backend->createTexture(
+    defaultTexture = _backend->createTexture(
         "default",
         tex_dimension,
         tex_dimension,
@@ -83,6 +111,16 @@ b8 mtRenderSystem::initialize() {
         false
     );
 
+    geometry.texture = defaultTexture;
+
+    loadTextureFromFile(_backend, "cobblestone", testTexture);
+
+    geometry.texture = testTexture;
+
+    mtEventSystem::getInstance()->registerEvent(mtEventType::DEBUG, [this](mtEvent event) {
+        geometry.texture = geometry.texture.internalData == defaultTexture.internalData ? testTexture : defaultTexture;
+    });
+
     MT_LOG_INFO("Render System Initialized");
     return true;
 }
@@ -90,7 +128,8 @@ b8 mtRenderSystem::initialize() {
 b8 mtRenderSystem::shutdown() {
     // Shutdown the rendering backend
     if (_backend) {
-        _backend->destroyTexture(geometry.texture);
+        _backend->destroyTexture(defaultTexture);
+        _backend->destroyTexture(testTexture);
         MT_DELETE((mtVulkanBackend*)_backend, mtVulkanBackend);
     }
     return true;
