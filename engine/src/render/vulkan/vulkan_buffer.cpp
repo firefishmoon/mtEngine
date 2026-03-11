@@ -1,17 +1,31 @@
 #include "vulkan_buffer.h"
 #include "render/vulkan/vulkan_error.h"
+#include "render/vulkan/vulkan_device.h"
 #include "vulkan_context.h"
 #include "core/loggersystem.h"
 #include "vulkan_command_buffer.h"
 #include <vulkan/vulkan_core.h>
 
+mtVulkanBuffer::mtVulkanBuffer(
+        mtVulkanDevice& mtVkDevice,
+        u64 size,
+        s32 usage,
+        u32 memoryPropertyFlags,
+        b8 bindOnCreate) : _mtVkDevice(mtVkDevice) {
+    _handle = VK_NULL_HANDLE;
+    _memory = VK_NULL_HANDLE;
+    _isLocked = false;
+    if (!initialize(size, usage, memoryPropertyFlags, bindOnCreate)) {
+        MT_LOG_ERROR("Failed to initialize Vulkan buffer");
+        throw std::runtime_error("Failed to initialize Vulkan buffer");
+    }
+}
+
 b8 mtVulkanBuffer::initialize(
-        mtVulkanContext* context,
         u64 size,
         s32 usage,
         u32 memoryPropertyFlags,
         b8 bindOnCreate) {
-    _context = context;
     _totalSize = size;
     _usage = usage;
     _memoryPropertyFlags = memoryPropertyFlags;
@@ -21,13 +35,13 @@ b8 mtVulkanBuffer::initialize(
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkDevice device = context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
 
     VK_CHECK(vkCreateBuffer(device, &bufferInfo, 0, &_handle));
 
     VkMemoryRequirements requirements;
     vkGetBufferMemoryRequirements(device, _handle, &requirements);
-    _memoryIndex = context->getVulkanDevice()->findMemoryType(requirements.memoryTypeBits, _memoryPropertyFlags);
+    _memoryIndex = _mtVkDevice.findMemoryType(requirements.memoryTypeBits, _memoryPropertyFlags);
     if (_memoryIndex == -1) {
         MT_LOG_ERROR("Unable to create vulkan buffer because the required memory type index was not found");
         return false;
@@ -44,14 +58,14 @@ b8 mtVulkanBuffer::initialize(
     }
 
     if (bindOnCreate) {
-        bind(0);        
+        bind(0);
     }
 
     return true;
 }
 
 void mtVulkanBuffer::shutdown() {
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     if (_memory) {
         vkFreeMemory(device, _memory, 0);
         _memory = 0;
@@ -75,7 +89,7 @@ b8 mtVulkanBuffer::resize(
     bufferInfo.usage = _usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     VkBuffer newBuffer;
 
     VK_CHECK(vkCreateBuffer(device, &bufferInfo, 0, &newBuffer));
@@ -115,24 +129,27 @@ b8 mtVulkanBuffer::resize(
 }
 
 void mtVulkanBuffer::bind(u64 offset) {
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     VK_CHECK(vkBindBufferMemory(device, _handle, _memory, 0));
 }
 
 void* mtVulkanBuffer::lockMemory(u64 offset, u64 size, u32 flags) {
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    // VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     void* data;
     VK_CHECK(vkMapMemory(device, _memory, offset, size, flags, &data));
     return data;
 }
 
 void mtVulkanBuffer::unlockMemory() {
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    // VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     vkUnmapMemory(device, _memory);
 }
 
 void mtVulkanBuffer::loadData(u64 offset, u64 size, u32 flags, const void* data) {
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    // VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     void* dataPtr;
     VK_CHECK(vkMapMemory(device, _memory, offset, size, flags, &dataPtr));
     memcpy(dataPtr, data, size);
@@ -140,7 +157,7 @@ void mtVulkanBuffer::loadData(u64 offset, u64 size, u32 flags, const void* data)
 }
 
 void mtVulkanBuffer::copyTo(
-        VkCommandPool pool, 
+        VkCommandPool pool,
         VkFence fence,
         VkQueue queue,
         u64 offset,
@@ -149,8 +166,8 @@ void mtVulkanBuffer::copyTo(
         u64 size
     ) {
     vkQueueWaitIdle(queue);
-    mtVulkanCommandBuffer tempCommandBuffer;
-    tempCommandBuffer.initialize(_context, true);
+    mtVulkanCommandBuffer tempCommandBuffer(_mtVkDevice, true);
+    // tempCommandBuffer.initialize(_context, true);
     tempCommandBuffer.begin();
 
     VkBufferCopy copyRegion;
@@ -171,5 +188,5 @@ void mtVulkanBuffer::copyTo(
     vkQueueSubmit(queue, 1, &submitInfo, fence);
     vkQueueWaitIdle(queue);
 
-    tempCommandBuffer.shutdown();
+    // tempCommandBuffer.shutdown();
 }

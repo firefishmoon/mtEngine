@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../defines.h"
+#include "render_types.h"
 #include <glm/glm.hpp>
+#include <string>
 
 class mtIRenderBackend {
 public:
@@ -15,6 +17,10 @@ public:
     virtual b8 renderEnd() = 0;
     virtual b8 renderPresent() = 0;
 
+    virtual mtTextureHandle createTexture(const std::string& name, s32 width, s32 height, s32 channelCount, const u8* pixels, b8 hasTransparency) = 0;
+
+    virtual void destroyTexture(mtTextureHandle& texture) = 0;
+
     virtual void updateGlobalState(
         glm::mat4 projection,
         glm::mat4 view,
@@ -23,5 +29,5 @@ public:
         s32 mode
     ) = 0;
 
-    virtual void updateObject(glm::mat4 model) = 0;
+    virtual void updateObject(mtGeometryData& geometry) = 0;
 };

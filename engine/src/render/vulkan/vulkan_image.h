@@ -4,15 +4,11 @@
 #include "defines.h"
 
 
-class mtVulkanContext;
+class mtVulkanDevice;
 
 class mtVulkanImage {
 public:
-    mtVulkanImage();
-    ~mtVulkanImage() {
-    }
-
-    b8 initialize(mtVulkanContext* pVulkanContext,
+    mtVulkanImage(mtVulkanDevice& mtVkDevice,
                 u32 width,
                 u32 height,
                 VkFormat format,
@@ -23,16 +19,41 @@ public:
                 VkImageAspectFlags viewAspectFlags,
                 u32 mipLevels);
 
-    void shutdown();
+    ~mtVulkanImage() {
+        shutdown();
+    }
+
+    void transitionLayout(
+        VkCommandBuffer commandBuffer,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout
+    );
+
+    void copyFromBuffer(
+        VkCommandBuffer commandBuffer,
+        VkBuffer buffer
+    );
 
     inline VkImageView getImageView() const { return _imageView; }
 
 
     // mtVkImageContext* getImageContext() { return &_imageContext; }
 protected:
+    b8 initialize(mtVulkanDevice& mtVkDevice,
+                u32 width,
+                u32 height,
+                VkFormat format,
+                VkImageTiling tiling,
+                VkImageUsageFlags usage,
+                VkMemoryPropertyFlags properties,
+                b8 createView,
+                VkImageAspectFlags viewAspectFlags,
+                u32 mipLevels);
+    void shutdown();
     // access via public accessors instead of friendship
 
-    mtVulkanContext* _pVulkanContext;
+    // mtVulkanContext* _pVulkanContext;
+    mtVulkanDevice& _mtVkDevice;
     // mtVkImageContext _imageContext;
     VkImage _image;
     VkDeviceMemory _memory;

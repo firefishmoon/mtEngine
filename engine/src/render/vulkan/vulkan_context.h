@@ -2,9 +2,12 @@
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
+#include <memory>
 
 #include "defines.h"
+#include "render/vulkan/vulkan_instance.h"
 #include "render/vulkan/vulkan_device.h"
+#include "render/vulkan/vulkan_surface.h"
 #include "render/vulkan/vulkan_swapchain.h"
 #include "render/vulkan/vulkan_command_buffer.h"
 #include "render/vulkan/vulkan_renderpass.h"
@@ -23,14 +26,14 @@ public:
 
     // VkInstance getInstance() const { return _instance; }
     // mtVkContext* getVkContext() { return &_context; }
-    inline mtVulkanDevice* getVulkanDevice() { return &_vulkanDevice; }
-    inline mtVulkanSwapChain* getVulkanSwapChain() { return &_vulkanSwapChain; }
-    inline mtVector<mtVulkanCommandBuffer>* getVulkanCommandBuffers() { return &_commandBuffers; }
+    inline mtVulkanDevice* getVulkanDevice() { return _vulkanDevice.get(); }
+    inline mtVulkanSwapChain* getVulkanSwapChain() { return _vulkanSwapChain.get(); }
+    inline mtVector<std::unique_ptr<mtVulkanCommandBuffer>>* getVulkanCommandBuffers() { return &_commandBuffers; }
 
     // Accessors to reduce direct member access from friends
-    inline VkSurfaceKHR getSurface() const { return _surface; }
-    inline VkInstance getInstance() const { return _instance; }
-    inline b8 isDebugEnabled() const { return _enableDebug; }
+    inline VkSurfaceKHR getSurface() const { return _surface->getHandle(); }
+    inline VkInstance getInstance() const { return _instance->getHandle(); }
+    // inline b8 isDebugEnabled() const { return _enableDebug; }
     inline u16 getWidth() const { return _width; }
     inline u16 getHeight() const { return _height; }
     inline u32 getCurrentFrame() const { return _currentFrame; }
@@ -41,30 +44,30 @@ public:
     inline mtVector<VkSemaphore>& getImageAvailableSemaphores() { return _imageAvailableSemaphores; }
     inline mtVector<VkSemaphore>& getRenderFinishedSemaphores() { return _renderFinishedSemaphores; }
     inline mtVector<VkFence>& getInFlightFences() { return _inFlightFences; }
-    inline mtVulkanRenderPass* getMainRenderPass() { return &_mainRenderPass; }
+    inline mtVulkanRenderPass* getMainRenderPass() { return _mainRenderPass.get(); }
 
-    inline mtVulkanBuffer& getVertexBuffer() { return _vertexBuffer; }
-    inline mtVulkanBuffer& getIndexBuffer() { return _indexBuffer; }
-    inline mtVulkanMaterialShader& getMaterialShader() { return _objectShader; }
+    inline mtVulkanBuffer& getVertexBuffer() { return *_vertexBuffer; }
+    inline mtVulkanBuffer& getIndexBuffer() { return *_indexBuffer; }
+    inline mtVulkanMaterialShader& getMaterialShader() { return *_objectShader; }
 
 protected:
     b8 createBuffers();
-    // friend class mtVulkanDevice;
-    // mtVkContext _context;
-    mtVulkanDevice _vulkanDevice;
-    mtVulkanSwapChain _vulkanSwapChain;
-    mtVector<mtVulkanCommandBuffer> _commandBuffers;
+
+    std::unique_ptr<mtVulkanInstance> _instance;
+
+    std::unique_ptr<mtVulkanSurface> _surface;
+
+    std::unique_ptr<mtVulkanDevice> _vulkanDevice;
+
+    std::unique_ptr<mtVulkanSwapChain> _vulkanSwapChain;
+    // mtVulkanSwapChain _vulkanSwapChain;
+    std::unique_ptr<mtVulkanRenderPass> _mainRenderPass;
+
+    mtVector<std::unique_ptr<mtVulkanCommandBuffer>> _commandBuffers;
 
     u32 _apiMajor;
     u32 _apiMinor;
     u32 _apiPatch;
-
-    b8 _enableDebug;
-
-    VkInstance _instance;
-    VkDebugUtilsMessengerEXT _debugMessenger;
-
-    VkSurfaceKHR _surface;
 
     u32 _width;
     u32 _height;
@@ -73,12 +76,11 @@ protected:
     mtVector<VkSemaphore> _renderFinishedSemaphores;
     mtVector<VkFence> _inFlightFences;
 
-    mtVulkanRenderPass _mainRenderPass;
 
-    mtVulkanBuffer _vertexBuffer;
-    mtVulkanBuffer _indexBuffer;
+    std::unique_ptr<mtVulkanBuffer> _vertexBuffer;
+    std::unique_ptr<mtVulkanBuffer> _indexBuffer;
 
     u32 _currentFrame;
 
-    mtVulkanMaterialShader _objectShader;
+    std::unique_ptr<mtVulkanMaterialShader> _objectShader;
 };

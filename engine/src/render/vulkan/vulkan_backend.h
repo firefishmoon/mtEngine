@@ -16,7 +16,7 @@ struct SwapChainSupportDetails {
 struct QueueFamilyIndices {
     std::optional<u32> graphicsFamily;
     std::optional<u32> presentFamily;
-    
+
     bool isComplete() {
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
@@ -32,7 +32,7 @@ public:
     b8 initialize(u32 width, u32 height) override;
     b8 createSurface();
     b8 shutdown() override;
-    
+
     // b8 renderFrame() override;
     b8 onResize(u32 width, u32 height) override {
         _framebufferResized = true;
@@ -54,19 +54,22 @@ public:
         s32 mode
     ) override;
 
+    mtTextureHandle createTexture(const std::string& name, s32 width, s32 height, s32 channelCount, const u8* pixels, b8 hasTransparency) override;
 
-    void updateObject(glm::mat4 model) override;
-    
+    void destroyTexture(mtTextureHandle& texture) override;
+
+    void updateObject(mtGeometryData& geometry) override;
+
 protected:
     b8 createImageViews();
     //b8 createRenderPass();
     // b8 createGraphicsPipeline();
     b8 createFramebuffers();
-    
+
     void uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, mtVulkanBuffer& buffer, u64 offset, u64 size, void* data);
-    
+
     // b8 recordCommandBuffer(VkCommandBuffer commandBuffer, u32 imageIndex);
-    
+
     b8 checkDeviceExtensionSupport(VkPhysicalDevice device);
 
     // mtVector<VkFramebuffer> _swapChainFramebuffers;
@@ -74,7 +77,7 @@ protected:
     // VkRenderPass _renderPass = VK_NULL_HANDLE;
 
     b8 _framebufferResized = false;
-    
+
     u32 MAX_FRAMES_IN_FLIGHT = 0;
 
     mtVulkanContext _vulkanContext;

@@ -4,10 +4,29 @@
 #include "vulkan_error.h"
 #include "vulkan_command_buffer.h"
 #include "core/loggersystem.h"
+#include "render/render_types.h"
 #include <glm/glm.hpp>
 
+mtVulkanPipeline::mtVulkanPipeline(
+        mtVulkanDevice& mtVkDevice,
+        mtVulkanRenderPass *renderpass,
+        u32 attributeCount,
+        VkVertexInputAttributeDescription* attributes,
+        u32 descriptorSetLayoutCount,
+        VkDescriptorSetLayout* descriptorSetLayouts,
+        u32 stageCount,
+        VkPipelineShaderStageCreateInfo *stages,
+        VkViewport viewport,
+        VkRect2D scissor,
+        b8 isWireFrame
+    ): _mtVkDevice(mtVkDevice) {
+    if (!initialize(renderpass, attributeCount, attributes, descriptorSetLayoutCount, descriptorSetLayouts, stageCount, stages, viewport, scissor, isWireFrame)) {
+        MT_LOG_ERROR("Failed to create Vulkan pipeline.");
+        throw std::runtime_error("Failed to create Vulkan pipeline.");
+    }
+}
+
 b8 mtVulkanPipeline::initialize(
-        mtVulkanContext *context,
         mtVulkanRenderPass *renderpass,
         u32 attributeCount,
         VkVertexInputAttributeDescription* attributes,
@@ -19,7 +38,7 @@ b8 mtVulkanPipeline::initialize(
         VkRect2D scissor,
         b8 isWireFrame
     ) {
-    _context = context;
+    // _context = context;
     // Viewport state
     VkPipelineViewportStateCreateInfo viewport_state = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
     viewport_state.viewportCount = 1;
@@ -90,7 +109,7 @@ b8 mtVulkanPipeline::initialize(
     // Vertex input
     VkVertexInputBindingDescription binding_description;
     binding_description.binding = 0;  // Binding index
-    binding_description.stride = sizeof(glm::vec3);
+    binding_description.stride = sizeof(mtVertex);//sizeof(glm::vec3);
     binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;  // Move to next data entry for each vertex.
 
     // Attributes
@@ -99,7 +118,7 @@ b8 mtVulkanPipeline::initialize(
     vertex_input_info.pVertexBindingDescriptions = &binding_description;
     vertex_input_info.vertexAttributeDescriptionCount = attributeCount;
     vertex_input_info.pVertexAttributeDescriptions = attributes;
-    
+
      // Input assembly
     VkPipelineInputAssemblyStateCreateInfo input_assembly = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
     input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -121,13 +140,13 @@ b8 mtVulkanPipeline::initialize(
     pipeline_layout_create_info.pSetLayouts = descriptorSetLayouts;
 
     // Create the pipeline layout.
-    VkDevice device = context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     VK_CHECK(vkCreatePipelineLayout(
         device,
         &pipeline_layout_create_info,
         0,
         &_pipelineLayout));
-    
+
     // Pipeline create
     VkGraphicsPipelineCreateInfo pipeline_create_info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
     pipeline_create_info.stageCount = stageCount;
@@ -169,7 +188,7 @@ b8 mtVulkanPipeline::initialize(
 
 void mtVulkanPipeline::shutdown() {
 
-    VkDevice device = _context->getVulkanDevice()->getLogicalDevice();
+    VkDevice device = _mtVkDevice.getLogicalDevice();
     // Destroy pipeline
     if (_handle) {
         vkDestroyPipeline(device, _handle, 0);

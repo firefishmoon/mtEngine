@@ -134,19 +134,19 @@ def run(c):
 def compile_shaders(c):
     shader_dir = SRC_PATH / "assets" / "shaders"
     output_dir = SRC_PATH / "bin" / "assets" / "shaders"
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     shaders = [
         (shader_dir / "Builtin.Shader.vert", output_dir / "Builtin.Shader.vert.spv"),
         (shader_dir / "Builtin.Shader.frag", output_dir / "Builtin.Shader.frag.spv")
     ]
-    
+
     for src_file, dest_file in shaders:
         if not src_file.exists():
             print(f"Warning: Shader source file {src_file} does not exist.")
             continue
-            
+
         cmd = ["glslc", str(src_file), "-o", str(dest_file)]
         try:
             c.run(" ".join(cmd), pty=pty)
@@ -154,6 +154,7 @@ def compile_shaders(c):
         except Exception as e:
             print(f"Failed to compile {src_file.name}: {e}")
 
+    shutil.copytree(SRC_PATH / "assets", SRC_PATH / "bin" / "assets", dirs_exist_ok=True)
 
 @task
 def clean(c):

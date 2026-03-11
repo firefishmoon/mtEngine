@@ -2,6 +2,7 @@
 #include "render/vulkan/vulkan_device.h"
 #include "render/vulkan/vulkan_context.h"
 #include "render/vulkan/vulkan_swapchain.h"
+#include "render/vulkan/vulkan_instance.h"
 
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
@@ -30,7 +31,7 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan
     outQueueFamilyInfo->present_family_index = -1;
     outQueueFamilyInfo->compute_family_index = -1;
     outQueueFamilyInfo->transfer_family_index = -1;
-    
+
     u32 queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
     mtVector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -46,13 +47,13 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan
         // b8 presentSupport = vkGetPhysicalDeviceWin32PresentationSupportKHR(device, i);
         VkBool32 presentSupport = VK_FALSE;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-        
+
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             outQueueFamilyInfo->graphics_family_index = i;
             if (presentSupport) {
                 outQueueFamilyInfo->present_family_index = i;
             }
-        } 
+        }
         if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) {
             outQueueFamilyInfo->compute_family_index = i;
         }
@@ -60,7 +61,7 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan
             outQueueFamilyInfo->transfer_family_index = i;
         }
     }
-    MT_LOG_INFO("       {:d} |       {:d} |       {:d} |        {:d} | {}", 
+    MT_LOG_INFO("       {:d} |       {:d} |       {:d} |        {:d} | {}",
         outQueueFamilyInfo->graphics_family_index,
         outQueueFamilyInfo->present_family_index,
         outQueueFamilyInfo->compute_family_index,
@@ -68,7 +69,7 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan
         deviceProperties.deviceName
     );
 
-    if (outQueueFamilyInfo->present_family_index != -1 && 
+    if (outQueueFamilyInfo->present_family_index != -1 &&
         outQueueFamilyInfo->present_family_index != -1 &&
         outQueueFamilyInfo->transfer_family_index != -1) {
         MT_LOG_INFO("Device meets queue requirements.");
@@ -78,9 +79,10 @@ static b8 isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, vulkan
     return false;
 }
 
-b8 mtVulkanDevice::selectPhysicalDevice() {
+b8 mtVulkanDevice::selectPhysicalDevice(mtVulkanInstance& mtVkInstance, VkSurfaceKHR surface) {
     u32 deviceCount = 0;
-    VkInstance instance = _context->getInstance();
+    VkInstance instance = mtVkInstance.getHandle(); //_context->getInstance();
+
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
         MT_LOG_FATAL("Failed to find GPUs with Vulkan support!");
@@ -92,7 +94,7 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
 
     vulkan_physical_device_queue_family_info queueFamilyInfo = {-1, -1, -1, -1};
     for (const auto& device : devices) {
-        if (isDeviceSuitable(device, _context->getSurface(), &queueFamilyInfo)) {
+        if (isDeviceSuitable(device, surface, &queueFamilyInfo)) {
             _physicalDevice = device;
             break;
         }
@@ -112,7 +114,7 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
 
     mtVector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<u32> uniqueQueueFamilies = {
-        (u32)queueFamilyInfo.graphics_family_index, 
+        (u32)queueFamilyInfo.graphics_family_index,
         (u32)queueFamilyInfo.present_family_index,
         (u32)queueFamilyInfo.transfer_family_index
     };
@@ -125,8 +127,9 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
-   
+
     VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -135,33 +138,36 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (_context->isDebugEnabled()) {
+#ifdef VK_DEBUG
+    // if (_context->isDebugEnabled()) {
         mtVector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
+    // } else {
+#else
         createInfo.enabledLayerCount = 0;
-    }
+    // }
 
-    if (vkCreateDevice(_physicalDevice, 
-                       &createInfo, 
-                       nullptr, 
+#endif
+    if (vkCreateDevice(_physicalDevice,
+                       &createInfo,
+                       nullptr,
                        &_logicDevice) != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create logical device!");
         return false;
     }
-    
-    vkGetDeviceQueue(_logicDevice, 
-                     queueFamilyInfo.graphics_family_index, 
-                     0, 
+
+    vkGetDeviceQueue(_logicDevice,
+                     queueFamilyInfo.graphics_family_index,
+                     0,
                      &_graphicsQueue);
-    vkGetDeviceQueue(_logicDevice, 
-                     queueFamilyInfo.present_family_index, 
-                     0, 
-                     &_presentQueue); 
-    vkGetDeviceQueue(_logicDevice, 
-                     queueFamilyInfo.transfer_family_index, 
-                     0, 
+    vkGetDeviceQueue(_logicDevice,
+                     queueFamilyInfo.present_family_index,
+                     0,
+                     &_presentQueue);
+    vkGetDeviceQueue(_logicDevice,
+                     queueFamilyInfo.transfer_family_index,
+                     0,
                      &_transferQueue);
 
     MT_LOG_INFO("Logical device and queues created successfully.");
@@ -170,34 +176,33 @@ b8 mtVulkanDevice::selectPhysicalDevice() {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    
+
     if (vkCreateCommandPool(_logicDevice, &poolInfo, nullptr, &_graphicsCommandPool) != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create command pool");
         return false;
     }
-    
+
     MT_LOG_INFO("Graphics command pool created successfully.");
     return true;
 }
 
-b8 mtVulkanDevice::initialize(mtVulkanContext* context) {
-    _context = context;
-    // mtVkDeviceContext* pDeviceCtx = getDeviceContext();
+mtVulkanDevice::mtVulkanDevice(mtVulkanInstance& instance, VkSurfaceKHR surface) {
+    // _context = nullptr;
     _logicDevice = VK_NULL_HANDLE;
     _physicalDevice = VK_NULL_HANDLE;
+    _graphicsQueue = VK_NULL_HANDLE;
+    _presentQueue = VK_NULL_HANDLE;
+    _transferQueue = VK_NULL_HANDLE;
+    _graphicsCommandPool = VK_NULL_HANDLE;
+    _depthFormat = VK_FORMAT_UNDEFINED;
 
-    if (!selectPhysicalDevice()) {
+    if (!selectPhysicalDevice(instance, surface)) {
         MT_LOG_FATAL("Failed to select physical device!");
-        return false;
+        throw std::runtime_error("Failed to select physical device");
     }
-
-    return true;
 }
 
-
-b8 mtVulkanDevice::shutdown() {
-
-    // mtVkDeviceContext* pDeviceCtx = getDeviceContext();
+mtVulkanDevice::~mtVulkanDevice() {
     _physicalDevice = VK_NULL_HANDLE;
     _graphicsQueue = VK_NULL_HANDLE;
     _presentQueue = VK_NULL_HANDLE;
@@ -216,8 +221,6 @@ b8 mtVulkanDevice::shutdown() {
     _graphicsFamilyIndex = -1;
     _presentFamilyIndex = -1;
     _transferFamilyIndex = -1;
-
-    return true;
 }
 
 void mtVulkanDevice::querySwapChainSupport(VkSurfaceKHR surface, mtVkSwapchainSupportInfo* outSupportInfo) {

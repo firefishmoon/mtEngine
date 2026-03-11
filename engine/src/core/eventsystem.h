@@ -15,6 +15,7 @@ enum class mtEventType {
     WINDOW_RESIZE,
     FRAME,
     CUSTOM,
+    DEBUG,
     COUNT
 };
 
