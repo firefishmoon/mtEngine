@@ -350,13 +350,12 @@ void mtVulkanBackend::updateObject(mtGeometryData& geometry) {
 
 }
 
-mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 width, s32 height, s32 channelCount, const u8* pixels, b8 hasTransparency) {
+void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {
 
-    mtTextureHandle handle;
-    handle.internalData = MT_ALLOCATE(mtMemTag::RENDERING, sizeof(mtTextureInternalData));
-    mtTextureInternalData* internalData = (mtTextureInternalData*)handle.internalData;
+    texture.internalData = MT_ALLOCATE(mtMemTag::RENDERING, sizeof(mtTextureInternalData));
+    mtTextureInternalData* internalData = (mtTextureInternalData*)texture.internalData;
 
-    VkDeviceSize imageSize = width * height * channelCount;
+    VkDeviceSize imageSize = texture.width * texture.height * texture.channelCount;
     VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
     VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -372,8 +371,8 @@ mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 widt
     //internalData->image = std::make_unique<mtVulkanImage>(
     internalData->image = new mtVulkanImage(
         *_vulkanContext.getVulkanDevice(),
-        width,
-        height,
+        texture.width,
+        texture.height,
         imageFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -444,12 +443,10 @@ mtTextureHandle mtVulkanBackend::createTexture(const std::string& name, s32 widt
     }
 
     internalData->sampler = textureSampler;
-
-    return handle;
 }
 
 
-void mtVulkanBackend::destroyTexture(mtTextureHandle& texture) {
+void mtVulkanBackend::destroyTexture(mtTexture& texture) {
     if (texture.internalData) {
         vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
         mtTextureInternalData* internalData = (mtTextureInternalData*)texture.internalData;

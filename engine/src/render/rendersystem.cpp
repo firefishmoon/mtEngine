@@ -13,10 +13,10 @@
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
 mtGeometryData geometry = {};
-mtTextureHandle defaultTexture = {};
-mtTextureHandle testTexture = {};
+mtTexture defaultTexture = {};
+mtTexture testTexture = {};
 
-static b8 loadTextureFromFile(mtIRenderBackend* backend, const std::string& name, mtTextureHandle& texture) {
+static b8 loadTextureFromFile(mtIRenderBackend* backend, const std::string& name, mtTexture& texture) {
     stbi_set_flip_vertically_on_load(true);
     std::string fileName = std::format("assets/textures/{}.png", name);
     u8* data = stbi_load(fileName.c_str(), (int*)&texture.width, (int*)&texture.height, (int*)&texture.channelCount, 4);
@@ -26,15 +26,8 @@ static b8 loadTextureFromFile(mtIRenderBackend* backend, const std::string& name
     }
 
     MT_LOG_INFO("Loaded texture '{}' with dimensions: {}x{} and channels: {}", name, texture.width, texture.height, texture.channelCount);
-
-    testTexture = backend->createTexture(
-        name,
-        texture.width,
-        texture.height,
-        4,
-        data,
-        false
-    );
+    texture.channelCount = 4;
+    backend->createTexture(data, texture);
 
     stbi_image_free(data);
     return true;
@@ -102,14 +95,11 @@ b8 mtRenderSystem::initialize() {
         }
     }
 
-    defaultTexture = _backend->createTexture(
-        "default",
-        tex_dimension,
-        tex_dimension,
-        channels,
-        pixels,
-        false
-    );
+    defaultTexture.width = tex_dimension;
+    defaultTexture.height = tex_dimension;
+    defaultTexture.hasTransparency = false;
+    defaultTexture.channelCount = 4;
+    _backend->createTexture(pixels, defaultTexture);
 
     geometry.texture = defaultTexture;
 

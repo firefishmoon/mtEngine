@@ -25,7 +25,7 @@ struct mtVertex {
 
 // using mtTextureHandle = u32;
 
-struct mtTextureHandle {
+struct mtTexture {
     u32 id;
     s32 width;
     s32 height;
@@ -37,7 +37,7 @@ struct mtTextureHandle {
 struct mtGeometryData {
     u32 objectId;
     glm::mat4 model;
-    mtTextureHandle texture;
+    mtTexture texture;
 };
 
 // struct mtTexture {

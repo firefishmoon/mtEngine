@@ -54,9 +54,9 @@ public:
         s32 mode
     ) override;
 
-    mtTextureHandle createTexture(const std::string& name, s32 width, s32 height, s32 channelCount, const u8* pixels, b8 hasTransparency) override;
+    void createTexture(const u8* pixels, mtTexture &texture) override;
 
-    void destroyTexture(mtTextureHandle& texture) override;
+    void destroyTexture(mtTexture& texture) override;
 
     void updateObject(mtGeometryData& geometry) override;
 
