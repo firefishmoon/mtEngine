@@ -12,7 +12,7 @@
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
-mtGeometryData geometry = {};
+mtGeometry geometry = {};
 mtTexture defaultTexture = {};
 mtTexture testTexture = {};
 
@@ -57,10 +57,10 @@ b8 mtRenderSystem::initialize() {
         MT_LOG_ERROR("Failed to initialize rendering backend");
         return false;
     }
-    mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
-        this->renderFrame({event.fdata});
-
-    });
+    // mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
+    //     this->draw({event.fdata});
+    //
+    // });
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
         // Handle window resize
         _settings.width = event.resize.width;
@@ -101,15 +101,15 @@ b8 mtRenderSystem::initialize() {
     defaultTexture.channelCount = 4;
     _backend->createTexture(pixels, defaultTexture);
 
-    geometry.texture = defaultTexture;
+    // geometry.texture = defaultTexture;
 
-    loadTextureFromFile(_backend, "cobblestone", testTexture);
-
-    geometry.texture = testTexture;
-
-    mtEventSystem::getInstance()->registerEvent(mtEventType::DEBUG, [this](mtEvent event) {
-        geometry.texture = geometry.texture.internalData == defaultTexture.internalData ? testTexture : defaultTexture;
-    });
+    // loadTextureFromFile(_backend, "cobblestone", testTexture);
+    //
+    // geometry.texture = testTexture;
+    //
+    // mtEventSystem::getInstance()->registerEvent(mtEventType::DEBUG, [this](mtEvent event) {
+    //     geometry.texture = geometry.texture.internalData == defaultTexture.internalData ? testTexture : defaultTexture;
+    // });
 
     MT_LOG_INFO("Render System Initialized");
     return true;
@@ -125,7 +125,7 @@ b8 mtRenderSystem::shutdown() {
     return true;
 }
 
-void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
+void mtRenderSystem::draw(const mtGeometry& geometry) {
     // Process the render packet and issue draw calls
     // if (_backend) {
     //     _backend->renderFrame();
@@ -137,10 +137,10 @@ void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
     static float z = 3.0f;
     // z += speed * packet.delta;
 
-    static f32 angle = 0.01f;
-    angle += 0.1f;
-    glm::quat quat = glm::angleAxis(glm::radians(angle), glm::vec3(0, 0, -1));
-    glm::mat4 model = glm::mat4_cast(quat);
+    // static f32 angle = 0.01f;
+    // angle += 0.1f;
+    // glm::quat quat = glm::angleAxis(glm::radians(angle), glm::vec3(0, 0, -1));
+    // glm::mat4 model = glm::mat4_cast(quat);
 
     if (!_backend->renderPrepare())
             return;
@@ -164,10 +164,24 @@ void mtRenderSystem::renderFrame(const mtRenderPacket& packet) {
         glm::vec4(0.0f,0.0f,0.0f,0.0f),
         0);
 
-    geometry.model = model;
+    // packet.geometry.model = model;
 
     _backend->updateObject(geometry);
 
     _backend->renderEnd();
     _backend->renderPresent();
+}
+
+mtTexture mtRenderSystem::acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease) {
+    // mtTextureHandle handle = { mtTextureHandle::INVAILD_HANDLE };
+    // u32 index = _textureCreateIndex;
+    if (!loadTextureFromFile(_backend, name, _texturePool[_textureCreateIndex])) {
+        // handle.id = _textureCreateIndex;
+        throw std::runtime_error("acquireTexture failed.");
+    }
+    return _texturePool[_textureCreateIndex++];
+}
+
+void mtRenderSystem::releaseTexture(mtTexture& texture) {
+
 }

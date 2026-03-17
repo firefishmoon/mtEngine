@@ -13,6 +13,7 @@ enum class mtEventType {
     KEYBOARD_REPEAT,
     MOUSE,
     WINDOW_RESIZE,
+    INITED,
     FRAME,
     CUSTOM,
     DEBUG,

@@ -311,7 +311,7 @@ void mtVulkanMaterialShader::updateGlobalState() {
                             &global_descriptor, 0, 0);
 }
 
-void mtVulkanMaterialShader::updateObject(mtGeometryData &geometry) {
+void mtVulkanMaterialShader::updateObject(const mtGeometry &geometry) {
     VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
     u32 image_index = _context.getCurrentFrame();
     auto _pCommandBuffers = _context.getVulkanCommandBuffers();

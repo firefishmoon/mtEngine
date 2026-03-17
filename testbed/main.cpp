@@ -3,13 +3,15 @@
 #include <coroutine>
 #include <thread>
 #include <chrono>
-
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "core/jobsystem.h"
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
 #include "core/eventsystem.h"
 #include "core/application.h"
 #include "core/std_wrapper.h"
+#include "render/rendersystem.h"
 // #include <GLFW/glfw3.h>
 
 using namespace std;
@@ -108,6 +110,8 @@ void test_event() {
     mtEventSystem::getInstance()->unregisterEvent(mtEventType::CUSTOM, token);
 }
 
+mtGeometry geometry;
+
 int main() {
     mtAppConfig config = {"testbed", 800, 600};
     mtApplication::instance(config);
@@ -120,6 +124,11 @@ int main() {
     test_job();
     test_memory();
     test_event();
+
+    mtEventSystem::getInstance()->registerEvent(mtEventType::INITED, [](mtEvent event) {
+        mtTextureInfo info = {};
+        geometry.texture = mtRenderSystem::getInstance()->acquireTexture("cobblestone", info, true);
+    });
 
     mtLoggerSystem::getInstance()->setLogLevel(LogLevel::INFO);
 
@@ -136,6 +145,14 @@ int main() {
     });
     mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [](mtEvent event) {
         MT_LOG_TRACE("Frame delta: {}", event.fdata);
+        static f32 angle = 0.01f;
+        angle += 0.1f;
+        glm::quat quat = glm::angleAxis(glm::radians(angle), glm::vec3(0, 0, -1));
+        glm::mat4 model = glm::mat4_cast(quat);
+
+        geometry.model = model;
+
+        mtRenderSystem::getInstance()->draw(geometry);
     });
     mtApplication::getInstance()->run();
 

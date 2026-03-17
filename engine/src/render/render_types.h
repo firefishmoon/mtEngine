@@ -34,10 +34,26 @@ struct mtTexture {
     void* internalData; // For backend-specific texture handle (e.g., Vulkan image view)
 };
 
-struct mtGeometryData {
+
+struct mtTextureHandle {
+    u32 id;
+    enum {
+        INVAILD_HANDLE = 0xFFFF
+    };
+};
+
+struct mtTextureInfo {
+    s32 width;
+    s32 height;
+    s32 channelCount;
+    b8 hasTransparency;
+};
+
+struct mtGeometry {
     u32 objectId;
     glm::mat4 model;
     mtTexture texture;
+    // mtTextureHandle textureHandle;
 };
 
 // struct mtTexture {

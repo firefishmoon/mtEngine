@@ -29,5 +29,5 @@ public:
         s32 mode
     ) = 0;
 
-    virtual void updateObject(mtGeometryData& geometry) = 0;
+    virtual void updateObject(const mtGeometry& geometry) = 0;
 };

@@ -15,7 +15,7 @@ template<> MT_API mtApplication* Singleton<mtApplication>::_instance = nullptr;
 b8 mtApplication::initialize() {
     mtLoggerSystem::instance();
     mtLoggerSystem::getInstance()->initialize();
-    
+
     mtMemorySystem::instance();
     mtMemorySystem::getInstance()->initialize();
     mtJobSystem::instance(4);
@@ -27,7 +27,7 @@ b8 mtApplication::initialize() {
     mtRenderSettings renderSettings {mtBackendAPI::VULKAN, _config.width, _config.height};
     mtRenderSystem::instance(renderSettings);
 
-    
+
     MT_LOG_INFO("Application Initialized");
     return true;
 }
@@ -38,7 +38,7 @@ b8 mtApplication::shutdown() {
     mtMemorySystem::getInstance()->shutdown();
     mtLoggerSystem::getInstance()->shutdown();
     mtRenderSystem::getInstance()->shutdown();
- 
+
     MT_LOG_INFO("Application Shutdown");
     return true;
 }
@@ -63,8 +63,8 @@ static void key_callback(GLFWwindow *win, int key, int sc, int act, int mods) {
 static void window_size_callback(GLFWwindow* window, int width, int height) {
     MT_LOG_INFO("Window resized: width={}, height={}", width, height);
     mtEventSystem::getInstance()->emitEvent({
-        mtEventType::WINDOW_RESIZE, 
-        static_cast<u16>(width), 
+        mtEventType::WINDOW_RESIZE,
+        static_cast<u16>(width),
         static_cast<u16>(height)
     });
 }
@@ -79,10 +79,10 @@ void mtApplication::run() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     GLFWwindow* window = glfwCreateWindow(
-        _config.width, 
-        _config.height, 
-        _config.title.c_str(), 
-        NULL, 
+        _config.width,
+        _config.height,
+        _config.title.c_str(),
+        NULL,
         NULL);
     if (window == NULL) {
         MT_LOG_FATAL("Failed to create GLFW window");
@@ -97,9 +97,12 @@ void mtApplication::run() {
         MT_LOG_FATAL("Failed to initialize Render System");
         return;
     }
-    
+
     glfwSetKeyCallback(window, key_callback);
     glfwSetWindowSizeCallback(window, window_size_callback);
+
+    mtEventSystem::getInstance()->emitEvent({mtEventType::INITED, 0.0f});
+
     lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();
