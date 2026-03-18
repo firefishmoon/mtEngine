@@ -58,7 +58,7 @@ public:
 
     void destroyTexture(mtTexture& texture) override;
 
-    void updateObject(const mtGeometry& geometry) override;
+    void updateObject(const mtRenderGeometry& geometry) override;
 
 protected:
     b8 createImageViews();

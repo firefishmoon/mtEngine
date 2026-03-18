@@ -24,6 +24,7 @@ struct mtVertex {
 };
 
 // using mtTextureHandle = u32;
+#define MT_TEXTURE_MAX_COUNT 128
 
 struct mtTexture {
     u32 id;
@@ -38,7 +39,7 @@ struct mtTexture {
 struct mtTextureHandle {
     u32 id;
     enum {
-        INVAILD_HANDLE = 0xFFFF
+        INVALID_HANDLE = 0xFFFF
     };
 };
 
@@ -52,8 +53,13 @@ struct mtTextureInfo {
 struct mtGeometry {
     u32 objectId;
     glm::mat4 model;
-    mtTexture texture;
+    mtTextureHandle textureHandle;
     // mtTextureHandle textureHandle;
+};
+
+struct mtRenderGeometry {
+    mtGeometry geometry;
+    mtTexture* texture;
 };
 
 // struct mtTexture {

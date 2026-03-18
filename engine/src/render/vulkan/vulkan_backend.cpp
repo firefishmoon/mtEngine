@@ -327,7 +327,7 @@ void mtVulkanBackend::updateGlobalState(
 
 }
 
-void mtVulkanBackend::updateObject(const mtGeometry& geometry) {
+void mtVulkanBackend::updateObject(const mtRenderGeometry& geometry) {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
     mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
     mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();

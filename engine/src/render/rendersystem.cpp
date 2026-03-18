@@ -3,35 +3,17 @@
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
 #include "core/eventsystem.h"
+#include "render/system/texture_system.h"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 
 template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
 
-mtGeometry geometry = {};
-mtTexture defaultTexture = {};
-mtTexture testTexture = {};
-
-static b8 loadTextureFromFile(mtIRenderBackend* backend, const std::string& name, mtTexture& texture) {
-    stbi_set_flip_vertically_on_load(true);
-    std::string fileName = std::format("assets/textures/{}.png", name);
-    u8* data = stbi_load(fileName.c_str(), (int*)&texture.width, (int*)&texture.height, (int*)&texture.channelCount, 4);
-    if (!data) {
-        MT_LOG_ERROR("Failed to load texture from file: {}", fileName);
-        return false;
-    }
-
-    MT_LOG_INFO("Loaded texture '{}' with dimensions: {}x{} and channels: {}", name, texture.width, texture.height, texture.channelCount);
-    texture.channelCount = 4;
-    backend->createTexture(data, texture);
-
-    stbi_image_free(data);
-    return true;
-}
+// mtGeometry geometry = {};
+// mtTexture defaultTexture = {};
+// mtTexture testTexture = {};
 
 b8 mtRenderSystem::initialize() {
     // Initialize the rendering backend based on settings
@@ -57,6 +39,8 @@ b8 mtRenderSystem::initialize() {
         MT_LOG_ERROR("Failed to initialize rendering backend");
         return false;
     }
+
+    mtTextureSystem::instance();
     // mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
     //     this->draw({event.fdata});
     //
@@ -70,36 +54,41 @@ b8 mtRenderSystem::initialize() {
         }
     });
 
-    // TEST CODE
-    const u32 tex_dimension = 256;
-    const u32 channels = 4;
-    const u32 pixel_count = tex_dimension * tex_dimension;
-    u8 pixels[pixel_count * channels];
-    memset(pixels, 255, sizeof(u8) * pixel_count * channels);
-    // Each pixel.
-    for (u64 row = 0; row < tex_dimension; ++row) {
-        for (u64 col = 0; col < tex_dimension; ++col) {
-            u64 index = (row * tex_dimension) + col;
-            u64 index_bpp = index * channels;
-            if (row % 2) {
-                if (col % 2) {
-                    pixels[index_bpp + 0] = 0;
-                    pixels[index_bpp + 1] = 0;
-                }
-            } else {
-                if (!(col % 2)) {
-                    pixels[index_bpp + 0] = 0;
-                    pixels[index_bpp + 1] = 0;
-                }
-            }
-        }
+    // set all textures are available
+    for (int i = 0; i < MT_TEXTURE_MAX_COUNT; ++i) {
+        _texturePool[i].id = mtTextureHandle::INVALID_HANDLE;
     }
 
-    defaultTexture.width = tex_dimension;
-    defaultTexture.height = tex_dimension;
-    defaultTexture.hasTransparency = false;
-    defaultTexture.channelCount = 4;
-    _backend->createTexture(pixels, defaultTexture);
+    // TEST CODE
+    // const u32 tex_dimension = 256;
+    // const u32 channels = 4;
+    // const u32 pixel_count = tex_dimension * tex_dimension;
+    // u8 pixels[pixel_count * channels];
+    // memset(pixels, 255, sizeof(u8) * pixel_count * channels);
+    // // Each pixel.
+    // for (u64 row = 0; row < tex_dimension; ++row) {
+    //     for (u64 col = 0; col < tex_dimension; ++col) {
+    //         u64 index = (row * tex_dimension) + col;
+    //         u64 index_bpp = index * channels;
+    //         if (row % 2) {
+    //             if (col % 2) {
+    //                 pixels[index_bpp + 0] = 0;
+    //                 pixels[index_bpp + 1] = 0;
+    //             }
+    //         } else {
+    //             if (!(col % 2)) {
+    //                 pixels[index_bpp + 0] = 0;
+    //                 pixels[index_bpp + 1] = 0;
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // defaultTexture.width = tex_dimension;
+    // defaultTexture.height = tex_dimension;
+    // defaultTexture.hasTransparency = false;
+    // defaultTexture.channelCount = 4;
+    // _backend->createTexture(pixels, defaultTexture);
 
     // geometry.texture = defaultTexture;
 
@@ -118,8 +107,8 @@ b8 mtRenderSystem::initialize() {
 b8 mtRenderSystem::shutdown() {
     // Shutdown the rendering backend
     if (_backend) {
-        _backend->destroyTexture(defaultTexture);
-        _backend->destroyTexture(testTexture);
+        // _backend->destroyTexture(defaultTexture);
+        // _backend->destroyTexture(testTexture);
         MT_DELETE((mtVulkanBackend*)_backend, mtVulkanBackend);
     }
     return true;
@@ -165,23 +154,59 @@ void mtRenderSystem::draw(const mtGeometry& geometry) {
         0);
 
     // packet.geometry.model = model;
-
-    _backend->updateObject(geometry);
+    mtRenderGeometry renderGeometry;
+    renderGeometry.geometry = geometry;
+    renderGeometry.texture = &_texturePool[geometry.textureHandle.id];
+    _backend->updateObject(renderGeometry);
 
     _backend->renderEnd();
     _backend->renderPresent();
 }
 
-mtTexture mtRenderSystem::acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease) {
-    // mtTextureHandle handle = { mtTextureHandle::INVAILD_HANDLE };
-    // u32 index = _textureCreateIndex;
-    if (!loadTextureFromFile(_backend, name, _texturePool[_textureCreateIndex])) {
-        // handle.id = _textureCreateIndex;
-        throw std::runtime_error("acquireTexture failed.");
+// mtTexture mtRenderSystem::acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease) {
+//     // mtTextureHandle handle = { mtTextureHandle::INVAILD_HANDLE };
+//     // u32 index = _textureCreateIndex;
+//     if (!loadTextureFromFile(_backend, name, _texturePool[_textureCreateIndex])) {
+//         // handle.id = _textureCreateIndex;
+//         throw std::runtime_error("acquireTexture failed.");
+//     }
+//     return _texturePool[_textureCreateIndex++];
+// }
+
+
+mtTextureHandle mtRenderSystem::acquireTexture() {
+    mtTextureHandle handle = { mtTextureHandle::INVALID_HANDLE };
+    for (int i = 0; i < MT_TEXTURE_MAX_COUNT; ++i) {
+        if (_texturePool[i].id == mtTextureHandle::INVALID_HANDLE) {
+            handle.id = i;
+            _texturePool[i].id = i;
+            break;
+        }
     }
-    return _texturePool[_textureCreateIndex++];
+    return handle;
 }
 
-void mtRenderSystem::releaseTexture(mtTexture& texture) {
+b8 mtRenderSystem::createTexture(mtTextureHandle handle, const u8* pixels, mtTextureInfo& info) {
+    mtTexture& texture = _texturePool[handle.id];
+    texture.width = info.width;
+    texture.height = info.height;
+    texture.channelCount = info.channelCount;
+    texture.hasTransparency = info.hasTransparency;
+    _backend->createTexture(pixels, texture);
 
+    return true;
+}
+
+void mtRenderSystem::destroyTexture(mtTextureHandle handle) {
+    mtTexture& texture = _texturePool[handle.id];
+    if (texture.id == mtTextureHandle::INVALID_HANDLE)
+        return;
+
+    _backend->destroyTexture(texture);
+    texture.id = mtTextureHandle::INVALID_HANDLE;
+    texture.width = 0;
+    texture.height = 0;
+    texture.hasTransparency = 0;
+    texture.channelCount = 0;
+    texture.internalData = 0;
 }

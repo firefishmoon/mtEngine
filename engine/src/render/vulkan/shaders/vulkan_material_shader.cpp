@@ -311,14 +311,14 @@ void mtVulkanMaterialShader::updateGlobalState() {
                             &global_descriptor, 0, 0);
 }
 
-void mtVulkanMaterialShader::updateObject(const mtGeometry &geometry) {
+void mtVulkanMaterialShader::updateObject(const mtRenderGeometry &geometry) {
     VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
     u32 image_index = _context.getCurrentFrame();
     auto _pCommandBuffers = _context.getVulkanCommandBuffers();
     mtVulkanCommandBuffer &commandBuffer = *(*_pCommandBuffers)[_context.getCurrentFrame()];
 
     vkCmdPushConstants(commandBuffer.getHandle(), _pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(glm::mat4), &geometry.model);
+                       sizeof(glm::mat4), &geometry.geometry.model);
 
     VkDescriptorSet object_descriptor = _objectDescriptorSets[image_index];
     const u32 VULKAN_OBJECT_SHADER_DESCRIPTOR_COUNT = 2; // TODO: this should be dynamic based on the shader, but for
@@ -352,11 +352,11 @@ void mtVulkanMaterialShader::updateObject(const mtGeometry &geometry) {
     const u32 sampler_count = 1;
     VkDescriptorImageInfo image_infos[1];
 
-    if (geometry.texture.internalData != 0) {
+    if (geometry.texture->internalData != 0) {
         // MT_LOG_ERROR("Geometry does not have a texture assigned, but the shader expects one.");
         for (u32 sampler_index = 0; sampler_index < sampler_count; ++sampler_index) {
 
-            mtTextureInternalData *internal_data = (mtTextureInternalData *)geometry.texture.internalData;
+            mtTextureInternalData *internal_data = (mtTextureInternalData *)geometry.texture->internalData;
 
             // Assign view and sampler.
             image_infos[sampler_index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

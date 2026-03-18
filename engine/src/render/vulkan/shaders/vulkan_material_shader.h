@@ -33,7 +33,7 @@ public:
 
     void updateGlobalState();
 
-    void updateObject(const mtGeometry& geometry);
+    void updateObject(const mtRenderGeometry& geometry);
 
     inline void setProjection(glm::mat4 &projection) { _globalUBO.projection = projection; }
     inline void setView(glm::mat4 &view) { _globalUBO.view = view; }

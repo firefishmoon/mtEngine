@@ -5,6 +5,8 @@
 #include "render_types.h"
 #include "irenderbackend.h"
 
+#include <memory>
+
 enum class mtBackendAPI {
     OPENGL = 0,
     VULKAN,
@@ -36,7 +38,10 @@ public:
     // TODO: use mtTextureHandle
     mtTexture acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease);
 
-    void releaseTexture(mtTexture& texture);
+    mtTextureHandle acquireTexture();
+
+    b8 createTexture(mtTextureHandle handle, const u8* pixels, mtTextureInfo& info);
+    void destroyTexture(mtTextureHandle handle);
 
     b8 initialize() override;
     b8 shutdown() override;
@@ -45,6 +50,6 @@ private:
     mtRenderSettings _settings;
     mtIRenderBackend* _backend = nullptr;
 
-    mtTexture _texturePool[64] = {};
+    mtTexture _texturePool[MT_TEXTURE_MAX_COUNT] = {};
     u32 _textureCreateIndex = 0;
 };

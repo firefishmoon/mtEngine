@@ -12,6 +12,7 @@
 #include "core/application.h"
 #include "core/std_wrapper.h"
 #include "render/rendersystem.h"
+#include "render/system/texture_system.h"
 // #include <GLFW/glfw3.h>
 
 using namespace std;
@@ -74,12 +75,6 @@ void test_job() {
 
 void test_logger() {
     std::cout << "test_logger" << std::endl;
-    // mtLoggerSystem::getInstance()->log(LogLevel::TRACE, "This is a trace message: {}", 3.14);
-    // mtLoggerSystem::getInstance()->log(LogLevel::DEBUG, "This is a debug message: {}", "debug details");
-    // mtLoggerSystem::getInstance()->log(LogLevel::INFO, "This is an info message: {}", 42);
-    // mtLoggerSystem::getInstance()->log(LogLevel::WARN, "This is a warn message: {}", "warn details");
-    // mtLoggerSystem::getInstance()->log(LogLevel::ERROR, "This is an error message: {}", "error details");
-    // mtLoggerSystem::getInstance()->log(LogLevel::FATAL, "This is an fatal message: {}", "fatal details");
     MT_LOG_TRACE("This is a trace message: {}", 3.14);
     MT_LOG_DEBUG("This is a debug message: {}", "debug details");
     MT_LOG_INFO("This is an info message: {}", 42);
@@ -127,7 +122,8 @@ int main() {
 
     mtEventSystem::getInstance()->registerEvent(mtEventType::INITED, [](mtEvent event) {
         mtTextureInfo info = {};
-        geometry.texture = mtRenderSystem::getInstance()->acquireTexture("cobblestone", info, true);
+        // geometry.texture = mtRenderSystem::getInstance()->acquireTexture("cobblestone", info, true);
+        geometry.textureHandle = mtTextureSystem::getInstance()->acquireTexture("cobblestone", info, true);
     });
 
     mtLoggerSystem::getInstance()->setLogLevel(LogLevel::INFO);
@@ -155,6 +151,8 @@ int main() {
         mtRenderSystem::getInstance()->draw(geometry);
     });
     mtApplication::getInstance()->run();
+
+    mtTextureSystem::getInstance()->releaseTexture("cobblestone");
 
     mtApplication::getInstance()->shutdown();
    // TaskFunc();
