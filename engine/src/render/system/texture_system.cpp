@@ -51,6 +51,7 @@ mtTextureHandle mtTextureSystem::acquireTexture(const std::string& name, mtTextu
         autoRelease,
         1
     };
+    MT_LOG_DEBUG("createTexture {}", name.c_str());
     return handle;
 }
 
@@ -62,5 +63,6 @@ void mtTextureSystem::releaseTexture(const std::string& name) {
     if (_textureMap[name].autoRelease && _textureMap[name].references == 0) {
         mtRenderSystem::getInstance()->destroyTexture(_textureMap[name].handle);
         _textureMap.erase(name);
+        MT_LOG_DEBUG("destroyTexture {}", name.c_str());
     }
 }

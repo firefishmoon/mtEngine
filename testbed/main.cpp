@@ -120,19 +120,28 @@ int main() {
     test_memory();
     test_event();
 
-    mtEventSystem::getInstance()->registerEvent(mtEventType::INITED, [](mtEvent event) {
+    mtTextureHandle texture1, texture2;
+
+    mtEventSystem::getInstance()->registerEvent(mtEventType::INITED, [&texture1, &texture2](mtEvent event) {
         mtTextureInfo info = {};
         // geometry.texture = mtRenderSystem::getInstance()->acquireTexture("cobblestone", info, true);
-        geometry.textureHandle = mtTextureSystem::getInstance()->acquireTexture("cobblestone", info, true);
+        texture1 = mtTextureSystem::getInstance()->acquireTexture("cobblestone", info, true);
+        texture2 = mtTextureSystem::getInstance()->acquireTexture("paving", info, true);
+        geometry.textureHandle.id = texture1.id;
     });
 
-    mtLoggerSystem::getInstance()->setLogLevel(LogLevel::INFO);
+    mtLoggerSystem::getInstance()->setLogLevel(LogLevel::DEBUG);
 
-    mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_PRESS, [](mtEvent event) {
+    mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_PRESS, [&texture1, &texture2](mtEvent event) {
         MT_LOG_INFO("Key pressed: {}", event.data);
 
         if (event.data == (u32)mtInputKeys::KEY_SPACE) {
-            mtEventSystem::getInstance()->emitEvent({mtEventType::DEBUG, 0.0f});
+            // mtEventSystem::getInstance()->emitEvent({mtEventType::DEBUG, 0.0f});
+            if (geometry.textureHandle.id == texture1.id) {
+                geometry.textureHandle.id = texture2.id;
+            } else {
+                geometry.textureHandle.id = texture1.id;
+            }
         }
 
     });
@@ -153,6 +162,7 @@ int main() {
     mtApplication::getInstance()->run();
 
     mtTextureSystem::getInstance()->releaseTexture("cobblestone");
+    mtTextureSystem::getInstance()->releaseTexture("paving");
 
     mtApplication::getInstance()->shutdown();
    // TaskFunc();
