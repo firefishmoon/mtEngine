@@ -35,21 +35,26 @@ public:
 
     ~mtRenderSystem() = default;
 
-    // TODO: use mtTextureHandle
-    mtTexture acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease);
+    // mtTexture acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease);
 
-    mtTextureHandle acquireTexture();
-
-    b8 createTexture(mtTextureHandle handle, const u8* pixels, mtTextureInfo& info);
+    // mtTextureHandle acquireTexture();
+    mtTextureHandle createTexture(const u8* pixels, mtTextureInfo& info);
     void destroyTexture(mtTextureHandle handle);
+
+    mtShaderHandle createShader(const u8 data, u32 dataSize);
+    void destroyShader(mtShaderHandle handle);
 
     b8 initialize() override;
     b8 shutdown() override;
     void draw(const mtGeometry& geometry);
 private:
+    mtTextureHandle acquireTexture();
+
     mtRenderSettings _settings;
     mtIRenderBackend* _backend = nullptr;
 
     mtTexture _texturePool[MT_TEXTURE_MAX_COUNT] = {};
     u32 _textureCreateIndex = 0;
+
+    mtShader _shaderPool[MT_SHADER_MAX_COUNT] = {};
 };

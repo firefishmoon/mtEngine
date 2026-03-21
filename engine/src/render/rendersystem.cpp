@@ -186,7 +186,11 @@ mtTextureHandle mtRenderSystem::acquireTexture() {
     return handle;
 }
 
-b8 mtRenderSystem::createTexture(mtTextureHandle handle, const u8* pixels, mtTextureInfo& info) {
+mtTextureHandle mtRenderSystem::createTexture(const u8* pixels, mtTextureInfo& info) {
+    mtTextureHandle handle = acquireTexture();
+    if (handle.id == mtTextureHandle::INVALID_HANDLE)
+        return handle;
+
     mtTexture& texture = _texturePool[handle.id];
     texture.width = info.width;
     texture.height = info.height;
@@ -194,7 +198,7 @@ b8 mtRenderSystem::createTexture(mtTextureHandle handle, const u8* pixels, mtTex
     texture.hasTransparency = info.hasTransparency;
     _backend->createTexture(pixels, texture);
 
-    return true;
+    return handle;
 }
 
 void mtRenderSystem::destroyTexture(mtTextureHandle handle) {

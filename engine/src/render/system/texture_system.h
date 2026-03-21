@@ -14,7 +14,7 @@ public:
 
     void releaseTexture(const std::string& name);
 private:
-    b8 loadTextureFromFile(mtTextureHandle handle, const std::string& name, mtTextureInfo& outInfo);
+    b8 loadTextureFromFile(mtTextureHandle& handle, const std::string& name, mtTextureInfo& outInfo);
 
     struct mtTextureReferences {
         mtTextureHandle handle;

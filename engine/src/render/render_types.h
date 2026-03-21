@@ -25,6 +25,7 @@ struct mtVertex {
 
 // using mtTextureHandle = u32;
 #define MT_TEXTURE_MAX_COUNT 128
+#define MT_SHADER_MAX_COUNT 128
 
 struct mtTexture {
     u32 id;
@@ -48,6 +49,21 @@ struct mtTextureInfo {
     s32 height;
     s32 channelCount;
     b8 hasTransparency;
+};
+
+//
+// shaders
+//
+struct mtShaderHandle {
+    u32 id;
+    enum {
+        INVALID_HANDLE = 0xFFFF
+    };
+};
+
+struct mtShader {
+    u32 id;
+    void *internalData;
 };
 
 struct mtGeometry {

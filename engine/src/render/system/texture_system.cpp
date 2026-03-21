@@ -16,7 +16,7 @@ b8 mtTextureSystem::shutdown() {
 }
 
 
-b8 mtTextureSystem::loadTextureFromFile(mtTextureHandle handle, const std::string& name, mtTextureInfo& outInfo) {
+b8 mtTextureSystem::loadTextureFromFile(mtTextureHandle& handle, const std::string& name, mtTextureInfo& outInfo) {
     stbi_set_flip_vertically_on_load(true);
     std::string fileName = std::format("assets/textures/{}.png", name);
     u8* data = stbi_load(fileName.c_str(), (int*)&outInfo.width, (int*)&outInfo.height, (int*)&outInfo.channelCount, 4);
@@ -29,7 +29,7 @@ b8 mtTextureSystem::loadTextureFromFile(mtTextureHandle handle, const std::strin
     outInfo.channelCount = 4;
 
     //backend->createTexture(data, texture);
-    mtRenderSystem::getInstance()->createTexture(handle, data, outInfo);
+    handle = mtRenderSystem::getInstance()->createTexture(data, outInfo);
 
     stbi_image_free(data);
     return true;
@@ -40,12 +40,12 @@ mtTextureHandle mtTextureSystem::acquireTexture(const std::string& name, mtTextu
         _textureMap[name].references += 1;
         return _textureMap[name].handle;
     }
-    mtTextureHandle handle = mtRenderSystem::getInstance()->acquireTexture();
+    mtTextureHandle handle = { mtTextureHandle::INVALID_HANDLE };
+    loadTextureFromFile(handle, name, outInfo);
     if (handle.id == mtTextureHandle::INVALID_HANDLE) {
         MT_LOG_ERROR("mtRenderSystem::acquireTexture failed.");
         return handle;
     }
-    loadTextureFromFile(handle, name, outInfo);
     _textureMap[name] = {
         handle,
         autoRelease,
