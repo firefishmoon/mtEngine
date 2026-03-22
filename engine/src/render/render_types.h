@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include <glm/glm.hpp>
+#include <string>
 
 struct mtGlobalUniformObject {
     glm::mat4 projection;
@@ -64,6 +65,66 @@ struct mtShaderHandle {
 struct mtShader {
     u32 id;
     void *internalData;
+};
+
+//
+// programs
+//
+
+struct mtProgramHandle {
+    u32 id;
+    enum {
+        INVALID_HANDLE = 0xFFFF
+    };
+};
+
+enum class mtVertexAttributeType {
+    F32,
+    F32_2,
+    F32_3,
+    F32_4,
+    MAT3,
+    MAT4,
+    S8,
+    U8,
+    S16,
+    U16,
+    S32,
+    U32
+};
+
+enum class mtUniformType {
+    F32,
+    F32_2,
+    F32_3,
+    F32_4,
+    S8,
+    U8,
+    S16,
+    U16,
+    S32,
+    U32,
+    MAT3,
+    MAT4,
+    SAMPER1D,
+    SAMPER2D
+};
+
+enum class mtUniformScope {
+    GLOBAL,
+    INSTANCE,
+    LOCAL
+};
+
+struct mtUniform {
+    std::string name;
+    mtUniformType type;
+    mtUniformScope scope;
+    u32 location;
+};
+
+struct mtProgramConfig {
+    std::vector<mtUniform> uniforms;
 };
 
 struct mtGeometry {

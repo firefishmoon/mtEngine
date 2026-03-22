@@ -44,6 +44,8 @@ public:
     mtShaderHandle createShader(const u8 data, u32 dataSize);
     void destroyShader(mtShaderHandle handle);
 
+    mtProgramHandle createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config);
+
     b8 initialize() override;
     b8 shutdown() override;
     void draw(const mtGeometry& geometry);
