@@ -75,6 +75,7 @@ def do_config(c):
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=1",
         "-DCMAKE_INSTALL_PREFIX=\"\"",
         f"-DCMAKE_TOOLCHAIN_FILE={str(VCPKG_TOOLCHAIN)}",
+        "-DVCPKG_TARGET_TRIPLET=x64-mingw-static",
     ]
     if sys.platform == 'win32':
         # cmd.append("-G \"MinGW Makefiles\"")

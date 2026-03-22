@@ -13,14 +13,11 @@ file(TO_CMAKE_PATH "${_vcpkg_root}" _vcpkg_root)
 list(APPEND CMAKE_MODULE_PATH
      "${_vcpkg_root}/installed/x64-mingw-static/share/stb")
 
-set(glfw3_DIR "${_vcpkg_root}/installed/x64-mingw-static/share/glfw3" CACHE PATH "Path to glfw3-config.cmake directory" FORCE)
-set(glm_DIR "${_vcpkg_root}/installed/x64-mingw-static/share/glm" CACHE PATH "Path to glm-config.cmake directory" FORCE)
 # stb is header-only; we don't need a config file, only the module below
 # the module searches for headers in the standard vcpkg include location
 
 # Print vcpkg and glfw paths for debugging
 message(STATUS "_vcpkg_root = ${_vcpkg_root}")
-message(STATUS "glfw3_DIR = ${glfw3_DIR}")
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
