@@ -3,7 +3,7 @@
 #include "vulkan_context.h"
 #include "core/loggersystem.h"
 
-mtVulkanSwapChain::mtVulkanSwapChain(mtVulkanDevice& mtVkDevice, VkSurfaceKHR surface, u32 width, u32 height) : _mtVkDevice(mtVkDevice), _surface(surface) {
+mtVulkanSwapChain::mtVulkanSwapChain(mtVulkanDevice& mtVkDevice, VkSurfaceKHR surface, u32 width, u32 height) : _mtVkDevice(mtVkDevice), _surface(surface), _width(width), _height(height) {
     if (!create(width, height)) {
         throw std::runtime_error("Failed to create Vulkan SwapChain!");
     }
@@ -21,6 +21,8 @@ mtVulkanSwapChain::~mtVulkanSwapChain() {
 b8 mtVulkanSwapChain::create(u32 width, u32 height) {
     VkDevice device = _mtVkDevice.getLogicalDevice();
     VkExtent2D swapchainExtent = {width, height};
+    _width = width;
+    _height = height;
 
     _mtVkDevice.querySwapChainSupport(
         _surface,

@@ -70,12 +70,16 @@ struct mtShader {
 //
 // programs
 //
-
 struct mtProgramHandle {
     u32 id;
     enum {
         INVALID_HANDLE = 0xFFFF
     };
+};
+
+struct mtProgram {
+    u32 id;
+    void *internalData;
 };
 
 enum class mtVertexAttributeType {
@@ -131,7 +135,7 @@ struct mtGeometry {
     u32 objectId;
     glm::mat4 model;
     mtTextureHandle textureHandle;
-    // mtTextureHandle textureHandle;
+    mtProgramHandle programHandle;
 };
 
 struct mtRenderGeometry {

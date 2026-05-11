@@ -48,6 +48,10 @@ public:
     inline u32 getPresentFamilyIndex() const { return _presentFamilyIndex; }
     inline u32 getTransferFamilyIndex() const { return _transferFamilyIndex; }
 
+    inline u32 getSwapChainWidth() const { return _swapChainWidth; }
+    inline u32 getSwapChainHeight() const { return _swapChainHeight; }
+    inline void setSwapChainDimensions(u32 w, u32 h) { _swapChainWidth = w; _swapChainHeight = h; }
+
     // mtVkDeviceContext* getDeviceContext() { return &_deviceContext; }
     b8 detectDepthFormat();
 
@@ -69,6 +73,9 @@ protected:
     VkQueue _transferQueue;
     VkCommandPool _graphicsCommandPool;
     VkFormat _depthFormat;
+
+    u32 _swapChainWidth = 0;
+    u32 _swapChainHeight = 0;
 
     u32 _graphicsFamilyIndex = -1;
     u32 _presentFamilyIndex = -1;

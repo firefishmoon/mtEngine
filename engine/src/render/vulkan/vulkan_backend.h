@@ -1,5 +1,7 @@
 #include "../../defines.h"
 #include "../irenderbackend.h"
+#include "render/render_types.h"
+#include "vulkan_program.h"
 #include <vector>
 #include <optional>
 #include <string>
@@ -60,6 +62,17 @@ public:
 
     void updateObject(const mtRenderGeometry& geometry) override;
 
+    // Shader management
+    mtShaderHandle createShader(const u8* data, u32 dataSize, u32 stage) override;
+    void destroyShader(mtShaderHandle handle) override;
+
+    // Program management
+    mtProgramHandle createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config) override;
+    void destroyProgram(mtProgramHandle handle) override;
+
+    // Uniform updates
+    void updateUniform(mtProgramHandle program, const std::string& name, const void* data, u32 size) override;
+
 protected:
     b8 createImageViews();
     //b8 createRenderPass();
@@ -81,4 +94,8 @@ protected:
     u32 MAX_FRAMES_IN_FLIGHT = 0;
 
     mtVulkanContext _vulkanContext;
+    std::unique_ptr<mtVulkanProgramManager> _programManager;
+
+    mtShader _shaderPool[MT_SHADER_MAX_COUNT] = {};
+    mtProgram _programPool[MT_SHADER_MAX_COUNT] = {};
 };

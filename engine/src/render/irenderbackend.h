@@ -30,4 +30,15 @@ public:
     ) = 0;
 
     virtual void updateObject(const mtRenderGeometry& geometry) = 0;
+
+    // Shader management
+    virtual mtShaderHandle createShader(const u8* data, u32 dataSize, u32 stage) = 0;
+    virtual void destroyShader(mtShaderHandle handle) = 0;
+
+    // Program management
+    virtual mtProgramHandle createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config) = 0;
+    virtual void destroyProgram(mtProgramHandle handle) = 0;
+
+    // Uniform updates
+    virtual void updateUniform(mtProgramHandle program, const std::string& name, const void* data, u32 size) = 0;
 };

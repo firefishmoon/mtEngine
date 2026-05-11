@@ -59,4 +59,8 @@ private:
     u32 _textureCreateIndex = 0;
 
     mtShader _shaderPool[MT_SHADER_MAX_COUNT] = {};
+    u32 _shaderCreateIndex = 0;
+
+    mtProgram _programPool[MT_SHADER_MAX_COUNT] = {};
+    u32 _programCreateIndex = 0;
 };

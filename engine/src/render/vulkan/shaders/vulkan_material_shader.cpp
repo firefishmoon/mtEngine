@@ -275,6 +275,10 @@ void mtVulkanMaterialShader::use() {
     _pipeline->bind(&commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
+VkRenderPass mtVulkanMaterialShader::getRenderPassHandle() {
+    return _context.getMainRenderPass()->getHandle();
+}
+
 void mtVulkanMaterialShader::updateGlobalState() {
     VkDevice device = _context.getVulkanDevice()->getLogicalDevice();
     u32 image_index = _context.getCurrentFrame();

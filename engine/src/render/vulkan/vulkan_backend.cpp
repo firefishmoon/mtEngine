@@ -6,6 +6,7 @@
 #include "vulkan_backend.h"
 #include "core/loggersystem.h"
 #include "vulkan_buffer.h"
+#include "vulkan_program.h"
 #include <windows.h>
 #include <assert.h>
 #include <glm/glm.hpp>
@@ -51,6 +52,9 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
         MT_LOG_ERROR("Failed to create framebuffers!");
         return false;
     }
+
+    _programManager = std::make_unique<mtVulkanProgramManager>(*_vulkanContext.getVulkanDevice(), _vulkanContext.getMaterialShader());
+    MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->getImageCount();
 
     // test code
     const u32 vert_count = 4;
@@ -214,6 +218,9 @@ b8 mtVulkanBackend::renderPrepare() {
 
     _vulkanContext.getVulkanSwapChain()->setImageIndex(imageIndex);
 
+    // Keep device aware of current swapchain dimensions
+    _vulkanContext.getVulkanDevice()->setSwapChainDimensions(_vulkanContext.getWidth(), _vulkanContext.getHeight());
+
     return true;
 }
 
@@ -330,12 +337,6 @@ void mtVulkanBackend::updateGlobalState(
 void mtVulkanBackend::updateObject(const mtRenderGeometry& geometry) {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
     mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
-    mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
-
-    materialShader.updateObject(geometry);
-
-    // TODO: temporary test code
-    materialShader.use();
 
     // Bind vertex buffer at offset.
     VkDeviceSize offsets[1] = {0};
@@ -345,9 +346,161 @@ void mtVulkanBackend::updateObject(const mtRenderGeometry& geometry) {
     // Bind index buffer at offset.
     vkCmdBindIndexBuffer(commandBuffer.getHandle(), _vulkanContext.getIndexBuffer().getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
+    // Check if geometry has a custom program
+    if (geometry.geometry.programHandle.id != mtProgramHandle::INVALID_HANDLE &&
+        geometry.geometry.programHandle.id != 0) {
+        // Use custom program
+        mtVulkanProgram* program = _programManager->getProgram(geometry.geometry.programHandle);
+        if (program && program->pipeline != VK_NULL_HANDLE) {
+            // Bind custom pipeline
+            vkCmdBindPipeline(commandBuffer.getHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipeline);
+
+            // Auto-update texture uniform if texture is present and program has a sampler binding
+            if (geometry.texture && program->uniformNameToBinding.count("u_DiffuseTexture") > 0) {
+                mtTextureInternalData* internalData = (mtTextureInternalData*)geometry.texture->internalData;
+                if (internalData) {
+                    VkDescriptorImageInfo imageInfo{};
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    imageInfo.imageView = internalData->image->getImageView();
+                    imageInfo.sampler = internalData->sampler;
+                    _programManager->updateUniform(geometry.geometry.programHandle, "u_DiffuseTexture", &imageInfo, sizeof(VkDescriptorImageInfo));
+                }
+            }
+
+            // Bind descriptor sets for custom program
+            VkDescriptorSet sets[] = {program->descriptorSet};
+            vkCmdBindDescriptorSets(commandBuffer.getHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    program->pipelineLayout, 0, 1, sets, 0, nullptr);
+
+            // Push model matrix
+            vkCmdPushConstants(commandBuffer.getHandle(), program->pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &geometry.geometry.model);
+        }
+    } else {
+        // Use built-in material shader
+        mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
+        materialShader.updateObject(geometry);
+        materialShader.use();
+    }
+
     // Issue the draw.
     vkCmdDrawIndexed(commandBuffer.getHandle(), 6, 1, 0, 0, 0);
+}
 
+//
+// Shader management
+//
+mtShaderHandle mtVulkanBackend::createShader(const u8* data, u32 dataSize, u32 stage) {
+    VkShaderModule module = _programManager->createShaderModule(data, dataSize, (VkShaderStageFlagBits)stage);
+    mtShaderHandle handle = {MT_SHADER_MAX_COUNT};
+
+    if (module == VK_NULL_HANDLE) {
+        handle.id = mtShaderHandle::INVALID_HANDLE;
+        return handle;
+    }
+
+    // Find a free slot in the shader pool
+    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
+        if (_shaderPool[i].id == 0) {
+            _shaderPool[i].id = i + 1; // +1 to distinguish from INVALID_HANDLE (0xFFFF)
+            _shaderPool[i].internalData = module;
+            handle.id = _shaderPool[i].id;
+            MT_LOG_INFO("Created shader with handle id {}", handle.id);
+            break;
+        }
+    }
+
+    if (handle.id == MT_SHADER_MAX_COUNT) {
+        MT_LOG_ERROR("Shader pool is full");
+        handle.id = mtShaderHandle::INVALID_HANDLE;
+        vkDestroyShaderModule(_vulkanContext.getVulkanDevice()->getLogicalDevice(), module, nullptr);
+    }
+
+    return handle;
+}
+
+void mtVulkanBackend::destroyShader(mtShaderHandle handle) {
+    if (handle.id == mtShaderHandle::INVALID_HANDLE || handle.id == 0) return;
+
+    u32 index = handle.id - 1;
+    if (index >= MT_SHADER_MAX_COUNT) return;
+    if (_shaderPool[index].id == 0) return;
+
+    VkShaderModule module = (VkShaderModule)_shaderPool[index].internalData;
+    _programManager->destroyShaderModule(module);
+
+    _shaderPool[index].id = 0;
+    _shaderPool[index].internalData = nullptr;
+}
+
+//
+// Program management
+//
+mtProgramHandle mtVulkanBackend::createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config) {
+    VkShaderModule vertModule = VK_NULL_HANDLE;
+    VkShaderModule fragModule = VK_NULL_HANDLE;
+
+    // Look up the actual Vulkan shader modules from handles
+    if (vertexShader.id != mtShaderHandle::INVALID_HANDLE && vertexShader.id != 0) {
+        u32 idx = vertexShader.id - 1;
+        if (idx < MT_SHADER_MAX_COUNT && _shaderPool[idx].id != 0) {
+            vertModule = (VkShaderModule)_shaderPool[idx].internalData;
+        }
+    }
+
+    if (fragmentShader.id != mtShaderHandle::INVALID_HANDLE && fragmentShader.id != 0) {
+        u32 idx = fragmentShader.id - 1;
+        if (idx < MT_SHADER_MAX_COUNT && _shaderPool[idx].id != 0) {
+            fragModule = (VkShaderModule)_shaderPool[idx].internalData;
+        }
+    }
+
+    // Find a free slot in the program pool
+    u32 freeIndex = MT_SHADER_MAX_COUNT;
+    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
+        if (_programPool[i].id == 0) {
+            freeIndex = i;
+            break;
+        }
+    }
+
+    if (freeIndex == MT_SHADER_MAX_COUNT) {
+        MT_LOG_ERROR("Program pool is full");
+        return {mtProgramHandle::INVALID_HANDLE};
+    }
+
+    mtProgramHandle handle = {(freeIndex + 1)}; // +1 to distinguish from INVALID_HANDLE
+
+    if (!_programManager->createProgram(handle, vertModule, fragModule, config)) {
+        MT_LOG_ERROR("Failed to create program");
+        return {mtProgramHandle::INVALID_HANDLE};
+    }
+
+    _programPool[freeIndex].id = handle.id;
+    _programPool[freeIndex].internalData = _programManager->getProgram(handle);
+
+    MT_LOG_INFO("Created program with handle id {}", handle.id);
+    return handle;
+}
+
+void mtVulkanBackend::destroyProgram(mtProgramHandle handle) {
+    if (handle.id == 0 || handle.id == mtProgramHandle::INVALID_HANDLE) return;
+
+    u32 index = handle.id - 1;
+    if (index >= MT_SHADER_MAX_COUNT) return;
+    if (_programPool[index].id == 0) return;
+
+    _programManager->destroyProgram(handle);
+
+    _programPool[index].id = 0;
+    _programPool[index].internalData = nullptr;
+}
+
+//
+// Uniform updates
+//
+void mtVulkanBackend::updateUniform(mtProgramHandle program, const std::string& name, const void* data, u32 size) {
+    _programManager->updateUniform(program, name, data, size);
 }
 
 void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {

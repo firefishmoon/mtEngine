@@ -149,10 +149,11 @@ b8 mtVulkanDevice::selectPhysicalDevice(mtVulkanInstance& mtVkInstance, VkSurfac
     // }
 
 #endif
-    if (vkCreateDevice(_physicalDevice,
-                       &createInfo,
-                       nullptr,
-                       &_logicDevice) != VK_SUCCESS) {
+    VkResult result = vkCreateDevice(_physicalDevice,
+                        &createInfo,
+                        nullptr,
+                        &_logicDevice);
+    if (result != VK_SUCCESS) {
         MT_LOG_FATAL("Failed to create logical device!");
         return false;
     }

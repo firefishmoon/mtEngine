@@ -13,6 +13,7 @@
 #include "render/vulkan/vulkan_renderpass.h"
 #include "render/vulkan/vulkan_buffer.h"
 #include "render/vulkan/shaders/vulkan_material_shader.h"
+#include "render/vulkan/vulkan_program.h"
 #include "core/std_wrapper.h"
 
 
@@ -49,6 +50,7 @@ public:
     inline mtVulkanBuffer& getVertexBuffer() { return *_vertexBuffer; }
     inline mtVulkanBuffer& getIndexBuffer() { return *_indexBuffer; }
     inline mtVulkanMaterialShader& getMaterialShader() { return *_objectShader; }
+    inline mtVulkanProgramManager& getProgramManager() { return *_programManager; }
 
 protected:
     b8 createBuffers();
@@ -83,4 +85,5 @@ protected:
     u32 _currentFrame;
 
     std::unique_ptr<mtVulkanMaterialShader> _objectShader;
+    std::unique_ptr<mtVulkanProgramManager> _programManager;
 };

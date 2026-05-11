@@ -43,6 +43,8 @@ public:
     // inline mtVulkanContext* getContext() { return _context; }
     inline VkSurfaceFormatKHR getImageFormat() const { return _imageFormat; }
     inline u32 getImageCount() const { return _imageCount; }
+    inline u32 getWidth() const { return _width; }
+    inline u32 getHeight() const { return _height; }
     inline mtVector<mtVulkanFrameBuffer>& getFramebuffers() { return _framebuffers; }
     inline VkSwapchainKHR getHandle() const { return _handle; }
     inline u32 getImageIndex() const { return _imageIndex; }
@@ -64,6 +66,8 @@ protected:
     VkSurfaceFormatKHR _imageFormat;
     VkSwapchainKHR _handle;
     u32 _imageCount;
+    u32 _width;
+    u32 _height;
     b8 _supportsBlitDest;
     b8 _supportsBlitSrc;
     // khandle swapchainColorTexture;

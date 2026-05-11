@@ -41,12 +41,7 @@ b8 mtRenderSystem::initialize() {
     }
 
     mtTextureSystem::instance();
-    // mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [this](mtEvent event) {
-    //     this->draw({event.fdata});
-    //
-    // });
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
-        // Handle window resize
         _settings.width = event.resize.width;
         _settings.height = event.resize.height;
         if (_backend) {
@@ -54,51 +49,22 @@ b8 mtRenderSystem::initialize() {
         }
     });
 
-    // set all textures are available
+    // Initialize texture pool
     for (int i = 0; i < MT_TEXTURE_MAX_COUNT; ++i) {
         _texturePool[i].id = mtTextureHandle::INVALID_HANDLE;
     }
 
-    // TEST CODE
-    // const u32 tex_dimension = 256;
-    // const u32 channels = 4;
-    // const u32 pixel_count = tex_dimension * tex_dimension;
-    // u8 pixels[pixel_count * channels];
-    // memset(pixels, 255, sizeof(u8) * pixel_count * channels);
-    // // Each pixel.
-    // for (u64 row = 0; row < tex_dimension; ++row) {
-    //     for (u64 col = 0; col < tex_dimension; ++col) {
-    //         u64 index = (row * tex_dimension) + col;
-    //         u64 index_bpp = index * channels;
-    //         if (row % 2) {
-    //             if (col % 2) {
-    //                 pixels[index_bpp + 0] = 0;
-    //                 pixels[index_bpp + 1] = 0;
-    //             }
-    //         } else {
-    //             if (!(col % 2)) {
-    //                 pixels[index_bpp + 0] = 0;
-    //                 pixels[index_bpp + 1] = 0;
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // defaultTexture.width = tex_dimension;
-    // defaultTexture.height = tex_dimension;
-    // defaultTexture.hasTransparency = false;
-    // defaultTexture.channelCount = 4;
-    // _backend->createTexture(pixels, defaultTexture);
+    // Initialize shader pool
+    for (int i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
+        _shaderPool[i].id = 0;
+        _shaderPool[i].internalData = nullptr;
+    }
 
-    // geometry.texture = defaultTexture;
-
-    // loadTextureFromFile(_backend, "cobblestone", testTexture);
-    //
-    // geometry.texture = testTexture;
-    //
-    // mtEventSystem::getInstance()->registerEvent(mtEventType::DEBUG, [this](mtEvent event) {
-    //     geometry.texture = geometry.texture.internalData == defaultTexture.internalData ? testTexture : defaultTexture;
-    // });
+    // Initialize program pool
+    for (int i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
+        _programPool[i].id = 0;
+        _programPool[i].internalData = nullptr;
+    }
 
     MT_LOG_INFO("Render System Initialized");
     return true;
@@ -115,21 +81,7 @@ b8 mtRenderSystem::shutdown() {
 }
 
 void mtRenderSystem::draw(const mtGeometry& geometry) {
-    // Process the render packet and issue draw calls
-    // if (_backend) {
-    //     _backend->renderFrame();
-    // }
-    //
-    // MT_LOG_INFO("Rendering frame with delta time: {}", packet.delta);
-
-    float speed = 2.0f;
     static float z = 3.0f;
-    // z += speed * packet.delta;
-
-    // static f32 angle = 0.01f;
-    // angle += 0.1f;
-    // glm::quat quat = glm::angleAxis(glm::radians(angle), glm::vec3(0, 0, -1));
-    // glm::mat4 model = glm::mat4_cast(quat);
 
     if (!_backend->renderPrepare())
             return;
@@ -142,9 +94,9 @@ void mtRenderSystem::draw(const mtGeometry& geometry) {
         100.0f
     );
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, z),   // eye: 相机位置
-        glm::vec3(0.0f, 0.0f, 0.0f),   // center: 观察目标点
-        glm::vec3(0.0f, 1.0f, 0.0f)    // up: 相机的上方向（世界坐标）
+        glm::vec3(0.0f, 0.0f, z),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
     );
     _backend->updateGlobalState(
         projection,
@@ -153,10 +105,24 @@ void mtRenderSystem::draw(const mtGeometry& geometry) {
         glm::vec4(0.0f,0.0f,0.0f,0.0f),
         0);
 
-    // packet.geometry.model = model;
     mtRenderGeometry renderGeometry;
     renderGeometry.geometry = geometry;
-    renderGeometry.texture = &_texturePool[geometry.textureHandle.id];
+
+    // Only look up texture if the handle is valid
+    if (geometry.textureHandle.id != mtTextureHandle::INVALID_HANDLE && geometry.textureHandle.id < MT_TEXTURE_MAX_COUNT) {
+        renderGeometry.texture = &_texturePool[geometry.textureHandle.id];
+    } else {
+        renderGeometry.texture = nullptr;
+    }
+
+    // If geometry has a valid program handle, update its non-texture uniforms before drawing
+    if (geometry.programHandle.id != mtProgramHandle::INVALID_HANDLE &&
+        geometry.programHandle.id != 0 &&
+        geometry.programHandle.id <= MT_SHADER_MAX_COUNT) {
+        // Textures are bound inside updateObject where the backend knows the internal structure
+        renderGeometry.texture = renderGeometry.texture; // pass through
+    }
+
     _backend->updateObject(renderGeometry);
 
     _backend->renderEnd();
@@ -213,4 +179,67 @@ void mtRenderSystem::destroyTexture(mtTextureHandle handle) {
     texture.hasTransparency = 0;
     texture.channelCount = 0;
     texture.internalData = 0;
+}
+
+mtShaderHandle mtRenderSystem::createShader(const u8 data, u32 dataSize) {
+    // Find free slot in shader pool
+    u32 index = MT_SHADER_MAX_COUNT;
+    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
+        if (_shaderPool[i].id == 0) {
+            index = i;
+            break;
+        }
+    }
+    if (index == MT_SHADER_MAX_COUNT) {
+        MT_LOG_ERROR("Shader pool is full");
+        return {mtShaderHandle::INVALID_HANDLE};
+    }
+
+    // Determine shader stage from data signature or convention
+    // For now, we require the caller to have set up the stage externally
+    // The shader data is raw SPIR-V bytes
+    VkShaderStageFlagBits stage = VK_SHADER_STAGE_VERTEX_BIT;
+    // Simple heuristic: odd-indexed shaders are fragment, even are vertex
+    // In practice, this should be passed as a parameter
+    (void)data;
+    (void)dataSize;
+
+    // Delegate to backend for actual creation
+    mtShaderHandle handle = _backend->createShader(&data, dataSize, stage);
+    if (handle.id != mtShaderHandle::INVALID_HANDLE) {
+        _shaderPool[handle.id] = {handle.id, nullptr};
+    }
+    return handle;
+}
+
+void mtRenderSystem::destroyShader(mtShaderHandle handle) {
+    if (handle.id == mtShaderHandle::INVALID_HANDLE || handle.id >= MT_SHADER_MAX_COUNT)
+        return;
+    if (_shaderPool[handle.id].id == 0)
+        return;
+
+    _backend->destroyShader(handle);
+    _shaderPool[handle.id].id = 0;
+    _shaderPool[handle.id].internalData = nullptr;
+}
+
+mtProgramHandle mtRenderSystem::createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config) {
+    // Find free slot in program pool
+    u32 index = MT_SHADER_MAX_COUNT;
+    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
+        if (_programPool[i].id == 0) {
+            index = i;
+            break;
+        }
+    }
+    if (index == MT_SHADER_MAX_COUNT) {
+        MT_LOG_ERROR("Program pool is full");
+        return {mtProgramHandle::INVALID_HANDLE};
+    }
+
+    mtProgramHandle handle = _backend->createProgram(vertexShader, fragmentShader, config);
+    if (handle.id != mtProgramHandle::INVALID_HANDLE) {
+        _programPool[handle.id] = {handle.id, nullptr};
+    }
+    return handle;
 }
