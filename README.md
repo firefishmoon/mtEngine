@@ -17,7 +17,6 @@ The task builds using ``cmake`` and ``Ninja``.
 We're using [`invoke`](https://www.pyinvoke.org/) to avoid having to type the same things repeatedly on the
 command line. It makes use of the ``tasks.py`` file in the root of our repo.
 
-
 ```
 
    $ inv --list
@@ -44,13 +43,13 @@ Build
 Pre-requisites
 ==============
 
-- ``gcc``
+* ``gcc``
 
-- ``cmake``
+* ``cmake``
 
-- ``ninja``
+* ``ninja``
 
-- ``invoke`` - Python and can be installed via ``pipx install invoke`` (`pipx`
+* ``invoke`` - Python and can be installed via ``pipx install invoke`` (`pipx`
   installs tools in an isolated virtual environment.)
 
 One-time setup for vcpkg
@@ -61,14 +60,18 @@ One-time setup for vcpkg
    cd vcpkg
    ./bootstrap-vcpkg.sh -disableMetrics
 ```
+
 Engine dependency
 ========================
+
 ```
 vcpkg install glfw3:x64-mingw-static
 vcpkg install glm:x64-mingw-static
 vcpkg install stb:x64-mingw-static
+vcpkg install yaml-cpp:x64-mingw-static
 
 ```
+
 Install vulkan sdk
 
 [`Download`](https://vulkan.lunarg.com/sdk/home#windows) the vulkan sdk and follow the instructions for installation.

@@ -1,18 +1,18 @@
-#include <iostream>
-#include <stdio.h>
-#include <coroutine>
-#include <thread>
-#include <chrono>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include "core/application.h"
+#include "core/eventsystem.h"
 #include "core/jobsystem.h"
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
-#include "core/eventsystem.h"
-#include "core/application.h"
 #include "core/std_wrapper.h"
 #include "render/rendersystem.h"
 #include "render/system/texture_system.h"
+#include <chrono>
+#include <coroutine>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <iostream>
+#include <stdio.h>
+#include <thread>
 // #include <GLFW/glfw3.h>
 
 using namespace std;
@@ -41,9 +41,7 @@ struct TimerAwaiter {
 
 struct Task {
     struct promise_type {
-        Task get_return_object() {
-            return Task{};
-        }
+        Task get_return_object() { return Task{}; }
         std::suspend_never initial_suspend() noexcept { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void return_void() {}
@@ -58,16 +56,19 @@ Task TaskFunc() {
 
 void test_job() {
     std::cout << "test_job" << std::endl;
-    mtJob job = mtJob {[](void*) {
-        std::cout << "RunJob" << std::endl;
-        for (int i = 0; i < 5; ++i) {
-            mtJob innerJob = mtJob {[](void* param) {
-                int index = *static_cast<int*>(param);
-                std::cout << "  Inner Job " << index << " running." << std::endl;
-            }, new int(i)};
-            mtJobSystem::getInstance()->addJob(innerJob);
-        }
-    }, NULL};
+    mtJob job = mtJob{[](void *) {
+                          std::cout << "RunJob" << std::endl;
+                          for (int i = 0; i < 5; ++i) {
+                              mtJob innerJob = mtJob{[](void *param) {
+                                                         int index = *static_cast<int *>(param);
+                                                         std::cout << "  Inner Job " << index << " running."
+                                                                   << std::endl;
+                                                     },
+                                                     new int(i)};
+                              mtJobSystem::getInstance()->addJob(innerJob);
+                          }
+                      },
+                      NULL};
     // job.Run();
     mtJobSystem::getInstance()->addJob(job);
     mtJobSystem::getInstance()->runJobs();
@@ -89,8 +90,8 @@ void test_memory() {
     std::cout << "test_memory" << std::endl;
     mtMemorySystem::getInstance()->reportMemoryUsage();
     test_vector.reserve(100);
-    void* ptr1 = mtMemorySystem::getInstance()->allocate(mtMemTag::GENERAL, 256);
-    void* ptr2 = mtMemorySystem::getInstance()->allocate(mtMemTag::RENDERING, 512);
+    void *ptr1 = mtMemorySystem::getInstance()->allocate(mtMemTag::GENERAL, 256);
+    void *ptr2 = mtMemorySystem::getInstance()->allocate(mtMemTag::RENDERING, 512);
     mtMemorySystem::getInstance()->reportMemoryUsage();
     mtMemorySystem::getInstance()->deallocate(ptr1);
     mtMemorySystem::getInstance()->deallocate(ptr2);
@@ -98,14 +99,15 @@ void test_memory() {
 }
 
 void test_event() {
-    auto token = mtEventSystem::getInstance()->registerEvent(mtEventType::CUSTOM, [](mtEvent event) {
-        MT_LOG_TRACE("event handled");
-    });
+    auto token = mtEventSystem::getInstance()->registerEvent(mtEventType::CUSTOM,
+                                                             [](mtEvent event) { MT_LOG_TRACE("event handled"); });
     mtEventSystem::getInstance()->emitEvent({mtEventType::CUSTOM, 0.0f});
     mtEventSystem::getInstance()->unregisterEvent(mtEventType::CUSTOM, token);
 }
 
 mtGeometry geometry;
+
+void initShaders() {}
 
 int main() {
     mtAppConfig config = {"testbed", 800, 600};
@@ -143,11 +145,9 @@ int main() {
                 geometry.textureHandle.id = texture1.id;
             }
         }
-
     });
-    mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_RELEASE, [](mtEvent event) {
-        MT_LOG_INFO("Key release: {}", event.data);
-    });
+    mtEventSystem::getInstance()->registerEvent(mtEventType::KEYBOARD_RELEASE,
+                                                [](mtEvent event) { MT_LOG_INFO("Key release: {}", event.data); });
     mtEventSystem::getInstance()->registerEvent(mtEventType::FRAME, [](mtEvent event) {
         MT_LOG_TRACE("Frame delta: {}", event.fdata);
         static f32 angle = 0.01f;
@@ -165,7 +165,7 @@ int main() {
     mtTextureSystem::getInstance()->releaseTexture("paving");
 
     mtApplication::getInstance()->shutdown();
-   // TaskFunc();
+    // TaskFunc();
     // glfwInit();
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
