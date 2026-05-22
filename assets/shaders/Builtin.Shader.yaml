@@ -1,0 +1,24 @@
+name: Builtin.Shader
+vert: Builtin.Shader.vert
+frag: Builtin.Shader.frag
+attributes:
+    - name: in_position
+      type: vec3
+    - name: in_texcoord
+      type: vec2
+uniforms:
+    - name: projection
+      type: mat4
+      scope: 0
+    - name: view
+      type: mat4
+      scope: 0
+    - name: diffuse_colour
+      type: vec4
+      scope: 1
+    - name: diffuse_sampler
+      type: samp
+      scope: 1
+    - name: model
+      type: mat4
+      scope: 2

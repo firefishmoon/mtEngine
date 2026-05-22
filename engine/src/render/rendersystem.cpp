@@ -1,15 +1,17 @@
 #include "rendersystem.h"
-#include "vulkan/vulkan_backend.h"
+#include "core/eventsystem.h"
 #include "core/loggersystem.h"
 #include "core/memorysystem.h"
-#include "core/eventsystem.h"
+#include "render/render_types.h"
+#include "render/system/shader_system.h"
 #include "render/system/texture_system.h"
+#include "vulkan/vulkan_backend.h"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-template<> MT_API mtRenderSystem* Singleton<mtRenderSystem>::_instance = nullptr;
+template <> MT_API mtRenderSystem *Singleton<mtRenderSystem>::_instance = nullptr;
 
 // mtGeometry geometry = {};
 // mtTexture defaultTexture = {};
@@ -19,21 +21,21 @@ b8 mtRenderSystem::initialize() {
     // Initialize the rendering backend based on settings
     MT_LOG_INFO("Initializing Render System with API: {}", static_cast<int>(_settings.api));
     switch (_settings.api) {
-        case mtBackendAPI::OPENGL:
-            // Initialize OpenGL backend
-            break;
-        case mtBackendAPI::VULKAN:
-            // Initialize Vulkan backend
-            _backend = MT_NEW(mtMemTag::RENDERING, mtVulkanBackend);
-            break;
-        case mtBackendAPI::DIRECTX12:
-            // Initialize DirectX 12 backend
-            break;
-        case mtBackendAPI::METAL:
-            // Initialize Metal backend
-            break;
-        default:
-            return false;
+    case mtBackendAPI::OPENGL:
+        // Initialize OpenGL backend
+        break;
+    case mtBackendAPI::VULKAN:
+        // Initialize Vulkan backend
+        _backend = MT_NEW(mtMemTag::RENDERING, mtVulkanBackend);
+        break;
+    case mtBackendAPI::DIRECTX12:
+        // Initialize DirectX 12 backend
+        break;
+    case mtBackendAPI::METAL:
+        // Initialize Metal backend
+        break;
+    default:
+        return false;
     }
     if (_backend && !_backend->initialize(_settings.width, _settings.height)) {
         MT_LOG_ERROR("Failed to initialize rendering backend");
@@ -41,6 +43,7 @@ b8 mtRenderSystem::initialize() {
     }
 
     mtTextureSystem::instance();
+    mtShaderSystem::instance()->initialize();
     mtEventSystem::getInstance()->registerEvent(mtEventType::WINDOW_RESIZE, [this](mtEvent event) {
         _settings.width = event.resize.width;
         _settings.height = event.resize.height;
@@ -56,13 +59,13 @@ b8 mtRenderSystem::initialize() {
 
     // Initialize shader pool
     for (int i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        _shaderPool[i].id = 0;
+        _shaderPool[i].id = mtShaderHandle::INVALID_HANDLE;
         _shaderPool[i].internalData = nullptr;
     }
 
     // Initialize program pool
     for (int i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        _programPool[i].id = 0;
+        _programPool[i].id = mtProgramHandle::INVALID_HANDLE;
         _programPool[i].internalData = nullptr;
     }
 
@@ -75,49 +78,36 @@ b8 mtRenderSystem::shutdown() {
     if (_backend) {
         // _backend->destroyTexture(defaultTexture);
         // _backend->destroyTexture(testTexture);
-        MT_DELETE((mtVulkanBackend*)_backend, mtVulkanBackend);
+        MT_DELETE((mtVulkanBackend *)_backend, mtVulkanBackend);
     }
     return true;
 }
 
-void mtRenderSystem::draw(const mtGeometry& geometry) {
+void mtRenderSystem::draw(const mtGeometry &geometry) {
     static float z = 3.0f;
 
     if (!_backend->renderPrepare())
-            return;
+        return;
     _backend->renderBegin();
 
-    glm::mat4 projection = glm::perspective(
-        glm::radians(45.0f),
-        (float)_settings.width / (float)_settings.height,
-        0.1f,
-        100.0f
-    );
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, z),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-    _backend->updateGlobalState(
-        projection,
-        view,
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec4(0.0f,0.0f,0.0f,0.0f),
-        0);
+    glm::mat4 projection =
+        glm::perspective(glm::radians(45.0f), (float)_settings.width / (float)_settings.height, 0.1f, 100.0f);
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    _backend->updateGlobalState(projection, view, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), 0);
 
     mtRenderGeometry renderGeometry;
     renderGeometry.geometry = geometry;
 
     // Only look up texture if the handle is valid
-    if (geometry.textureHandle.id != mtTextureHandle::INVALID_HANDLE && geometry.textureHandle.id < MT_TEXTURE_MAX_COUNT) {
+    if (geometry.textureHandle.id != mtTextureHandle::INVALID_HANDLE &&
+        geometry.textureHandle.id < MT_TEXTURE_MAX_COUNT) {
         renderGeometry.texture = &_texturePool[geometry.textureHandle.id];
     } else {
         renderGeometry.texture = nullptr;
     }
 
     // If geometry has a valid program handle, update its non-texture uniforms before drawing
-    if (geometry.programHandle.id != mtProgramHandle::INVALID_HANDLE &&
-        geometry.programHandle.id != 0 &&
+    if (geometry.programHandle.id != mtProgramHandle::INVALID_HANDLE && geometry.programHandle.id != 0 &&
         geometry.programHandle.id <= MT_SHADER_MAX_COUNT) {
         // Textures are bound inside updateObject where the backend knows the internal structure
         renderGeometry.texture = renderGeometry.texture; // pass through
@@ -139,9 +129,8 @@ void mtRenderSystem::draw(const mtGeometry& geometry) {
 //     return _texturePool[_textureCreateIndex++];
 // }
 
-
 mtTextureHandle mtRenderSystem::acquireTexture() {
-    mtTextureHandle handle = { mtTextureHandle::INVALID_HANDLE };
+    mtTextureHandle handle = {mtTextureHandle::INVALID_HANDLE};
     for (int i = 0; i < MT_TEXTURE_MAX_COUNT; ++i) {
         if (_texturePool[i].id == mtTextureHandle::INVALID_HANDLE) {
             handle.id = i;
@@ -152,12 +141,12 @@ mtTextureHandle mtRenderSystem::acquireTexture() {
     return handle;
 }
 
-mtTextureHandle mtRenderSystem::createTexture(const u8* pixels, mtTextureInfo& info) {
+mtTextureHandle mtRenderSystem::createTexture(const u8 *pixels, mtTextureInfo &info) {
     mtTextureHandle handle = acquireTexture();
     if (handle.id == mtTextureHandle::INVALID_HANDLE)
         return handle;
 
-    mtTexture& texture = _texturePool[handle.id];
+    mtTexture &texture = _texturePool[handle.id];
     texture.width = info.width;
     texture.height = info.height;
     texture.channelCount = info.channelCount;
@@ -168,7 +157,7 @@ mtTextureHandle mtRenderSystem::createTexture(const u8* pixels, mtTextureInfo& i
 }
 
 void mtRenderSystem::destroyTexture(mtTextureHandle handle) {
-    mtTexture& texture = _texturePool[handle.id];
+    mtTexture &texture = _texturePool[handle.id];
     if (texture.id == mtTextureHandle::INVALID_HANDLE)
         return;
 
@@ -181,11 +170,11 @@ void mtRenderSystem::destroyTexture(mtTextureHandle handle) {
     texture.internalData = 0;
 }
 
-mtShaderHandle mtRenderSystem::createShader(const u8 data, u32 dataSize) {
+mtShaderHandle mtRenderSystem::createShader(const u8 *data, u32 dataSize, mtShaderType type) {
     // Find free slot in shader pool
     u32 index = MT_SHADER_MAX_COUNT;
     for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_shaderPool[i].id == 0) {
+        if (_shaderPool[i].id == mtShaderHandle::INVALID_HANDLE) {
             index = i;
             break;
         }
@@ -195,39 +184,29 @@ mtShaderHandle mtRenderSystem::createShader(const u8 data, u32 dataSize) {
         return {mtShaderHandle::INVALID_HANDLE};
     }
 
-    // Determine shader stage from data signature or convention
-    // For now, we require the caller to have set up the stage externally
-    // The shader data is raw SPIR-V bytes
-    VkShaderStageFlagBits stage = VK_SHADER_STAGE_VERTEX_BIT;
-    // Simple heuristic: odd-indexed shaders are fragment, even are vertex
-    // In practice, this should be passed as a parameter
-    (void)data;
-    (void)dataSize;
+    mtShader &shader = _shaderPool[index];
+    _shaderPool[index].id = index;
 
-    // Delegate to backend for actual creation
-    mtShaderHandle handle = _backend->createShader(&data, dataSize, stage);
-    if (handle.id != mtShaderHandle::INVALID_HANDLE) {
-        _shaderPool[handle.id] = {handle.id, nullptr};
-    }
-    return handle;
+    _backend->createShader(data, dataSize, type, shader);
+    return {index};
 }
 
 void mtRenderSystem::destroyShader(mtShaderHandle handle) {
     if (handle.id == mtShaderHandle::INVALID_HANDLE || handle.id >= MT_SHADER_MAX_COUNT)
         return;
-    if (_shaderPool[handle.id].id == 0)
-        return;
 
-    _backend->destroyShader(handle);
-    _shaderPool[handle.id].id = 0;
+    _backend->destroyShader(_shaderPool[handle.id]);
+    _shaderPool[handle.id].id = mtShaderHandle::INVALID_HANDLE;
     _shaderPool[handle.id].internalData = nullptr;
 }
 
-mtProgramHandle mtRenderSystem::createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config) {
+mtProgramHandle mtRenderSystem::createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader,
+                                              mtProgramConfig &config) {
+    MT_LOG_INFO("mtRenderSystem::createProgram vert:{} frag:{}", vertexShader.id, fragmentShader.id);
     // Find free slot in program pool
     u32 index = MT_SHADER_MAX_COUNT;
     for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_programPool[i].id == 0) {
+        if (_programPool[i].id == mtProgramHandle::INVALID_HANDLE) {
             index = i;
             break;
         }
@@ -237,9 +216,13 @@ mtProgramHandle mtRenderSystem::createProgram(mtShaderHandle vertexShader, mtSha
         return {mtProgramHandle::INVALID_HANDLE};
     }
 
-    mtProgramHandle handle = _backend->createProgram(vertexShader, fragmentShader, config);
-    if (handle.id != mtProgramHandle::INVALID_HANDLE) {
-        _programPool[handle.id] = {handle.id, nullptr};
-    }
-    return handle;
+    _programPool[index].id = index;
+    _backend->createProgram(_shaderPool[vertexShader.id], _shaderPool[fragmentShader.id], config, _programPool[index]);
+    return {index};
+}
+
+void mtRenderSystem::destroyProgram(mtProgramHandle handle) { _backend->destroyProgram(_programPool[handle.id]); }
+
+void mtRenderSystem::updateUniform(mtProgramHandle handle, const std::string &name, const void *data, u32 size) {
+    _backend->updateUniform(_programPool[handle.id], name, data, size);
 }

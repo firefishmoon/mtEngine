@@ -1,19 +1,13 @@
 #pragma once
 
-#include "../defines.h"
 #include "../common/singleton.h"
-#include "render_types.h"
+#include "../defines.h"
 #include "irenderbackend.h"
+#include "render_types.h"
 
 #include <memory>
 
-enum class mtBackendAPI {
-    OPENGL = 0,
-    VULKAN,
-    DIRECTX12,
-    METAL,
-    COUNT
-};
+enum class mtBackendAPI { OPENGL = 0, VULKAN, DIRECTX12, METAL, COUNT };
 
 struct mtRenderPacket {
     // Placeholder for render packet data
@@ -29,31 +23,34 @@ struct mtRenderSettings {
 };
 
 class MT_API mtRenderSystem : public Singleton<mtRenderSystem> {
-public:
-    mtRenderSystem(const mtRenderSettings& settings = mtRenderSettings())
-        : _settings(settings) {};
+  public:
+    mtRenderSystem(const mtRenderSettings &settings = mtRenderSettings()) : _settings(settings){};
 
     ~mtRenderSystem() = default;
 
     // mtTexture acquireTexture(const std::string& name, mtTextureInfo& outInfo, bool autoRelease);
 
     // mtTextureHandle acquireTexture();
-    mtTextureHandle createTexture(const u8* pixels, mtTextureInfo& info);
+    mtTextureHandle createTexture(const u8 *pixels, mtTextureInfo &info);
     void destroyTexture(mtTextureHandle handle);
 
-    mtShaderHandle createShader(const u8 data, u32 dataSize);
+    mtShaderHandle createShader(const u8 *data, u32 dataSize, mtShaderType type);
     void destroyShader(mtShaderHandle handle);
 
-    mtProgramHandle createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config);
+    mtProgramHandle createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig &config);
+    void destroyProgram(mtProgramHandle handle);
+
+    void updateUniform(mtProgramHandle handle, const std::string &name, const void *data, u32 size);
 
     b8 initialize() override;
     b8 shutdown() override;
-    void draw(const mtGeometry& geometry);
-private:
+    void draw(const mtGeometry &geometry);
+
+  private:
     mtTextureHandle acquireTexture();
 
     mtRenderSettings _settings;
-    mtIRenderBackend* _backend = nullptr;
+    mtIRenderBackend *_backend = nullptr;
 
     mtTexture _texturePool[MT_TEXTURE_MAX_COUNT] = {};
     u32 _textureCreateIndex = 0;

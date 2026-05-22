@@ -1,94 +1,46 @@
 #include "vulkan_program.h"
+#include "core/loggersystem.h"
+#include "core/memorysystem.h"
+#include "render/render_types.h"
+#include "render/vulkan/shaders/vulkan_material_shader.h"
 #include "vulkan_device.h"
 #include "vulkan_error.h"
-#include "render/vulkan/shaders/vulkan_material_shader.h"
-#include "core/loggersystem.h"
-#include "render/render_types.h"
 #include <cstring>
 
 // In vulkan_program.cpp, use a local constant matching the backend
 static const u32 MAX_FRAMES_IN_FLIGHT = 3;
 
-mtVulkanProgramManager::mtVulkanProgramManager(mtVulkanDevice& device, mtVulkanMaterialShader& materialShader)
-    : _device(device), _materialShader(materialShader) {
-    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        _shaderModules[i].module = VK_NULL_HANDLE;
-        _shaderModules[i].refCount = 0;
-        _programs[i].pipeline = VK_NULL_HANDLE;
-        _programs[i].pipelineLayout = VK_NULL_HANDLE;
-        _programs[i].descriptorSetLayout = VK_NULL_HANDLE;
-        _programs[i].descriptorPool = VK_NULL_HANDLE;
-        _programs[i].descriptorSet = VK_NULL_HANDLE;
-    }
-}
+mtVulkanProgramManager::mtVulkanProgramManager(mtVulkanDevice &device, mtVulkanMaterialShader &materialShader)
+    : _device(device), _materialShader(materialShader) {}
 
-mtVulkanProgramManager::~mtVulkanProgramManager() {
-    // Clean up all remaining programs and shader modules
-    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_programs[i].pipeline != VK_NULL_HANDLE) {
-            destroyProgram({i});
-        }
-        if (_shaderModules[i].module != VK_NULL_HANDLE) {
-            destroyShaderModule(_shaderModules[i].module);
-        }
-    }
-}
+mtVulkanProgramManager::~mtVulkanProgramManager() {}
 
-VkShaderModule mtVulkanProgramManager::createShaderModule(const u8* data, u32 dataSize, VkShaderStageFlagBits stage) {
-    // Find a free slot or reuse
-    u32 index = MT_SHADER_MAX_COUNT;
-    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_shaderModules[i].module == VK_NULL_HANDLE) {
-            index = i;
-            break;
-        }
-    }
-    if (index == MT_SHADER_MAX_COUNT) {
-        MT_LOG_ERROR("Shader module pool is full");
-        return VK_NULL_HANDLE;
-    }
-
+VkShaderModule mtVulkanProgramManager::createShaderModule(const u8 *data, u32 dataSize, VkShaderStageFlagBits stage) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = dataSize;
-    createInfo.pCode = reinterpret_cast<const u32*>(data);
+    createInfo.pCode = reinterpret_cast<const u32 *>(data);
 
     VkDevice device = _device.getLogicalDevice();
     VkShaderModule module;
     VK_CHECK(vkCreateShaderModule(device, &createInfo, nullptr, &module));
 
-    _shaderModules[index].module = module;
-    _shaderModules[index].stage = stage;
-    _shaderModules[index].refCount = 1;
-
-    MT_LOG_INFO("Created shader module at index {}", index);
     return module;
 }
 
 void mtVulkanProgramManager::destroyShaderModule(VkShaderModule module) {
-    if (module == VK_NULL_HANDLE) return;
+    if (module == VK_NULL_HANDLE)
+        return;
 
-    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_shaderModules[i].module == module) {
-            _shaderModules[i].refCount--;
-            if (_shaderModules[i].refCount == 0) {
-                vkDestroyShaderModule(_device.getLogicalDevice(), module, nullptr);
-                _shaderModules[i].module = VK_NULL_HANDLE;
-                MT_LOG_INFO("Destroyed shader module at index {}", i);
-            }
-            return;
-        }
-    }
-    MT_LOG_WARN("Attempted to destroy unknown shader module");
+    vkDestroyShaderModule(_device.getLogicalDevice(), module, nullptr);
 }
 
-b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule vertModule, VkShaderModule fragModule, mtProgramConfig& config) {
-    if (handle.id >= MT_SHADER_MAX_COUNT) {
-        MT_LOG_ERROR("Invalid program handle id: {}", handle.id);
-        return false;
-    }
+b8 mtVulkanProgramManager::createProgram(VkShaderModule vertModule, VkShaderModule fragModule, mtProgramConfig &config,
+                                         mtProgram &program) {
 
-    mtVulkanProgram& program = _programs[handle.id];
+    MT_LOG_INFO("mtVulkanProgramManager::createProgram");
+    program.internalData = mtMemorySystem::getInstance()->allocate(mtMemTag::RENDERING, sizeof(mtVulkanProgram));
+    mtVulkanProgram *vulkanProgram = new (program.internalData) mtVulkanProgram();
     VkDevice device = _device.getLogicalDevice();
 
     // Create shader stage infos
@@ -117,30 +69,30 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
         return false;
     }
 
-// Build descriptor set layout from config uniforms
-    for (auto& uniform : config.uniforms) {
+    // Build descriptor set layout from config uniforms
+    for (auto &uniform : config.uniforms) {
         VkDescriptorSetLayoutBinding binding{};
         binding.binding = uniform.location;
         binding.descriptorCount = 1;
         binding.stageFlags = VK_SHADER_STAGE_ALL;
 
         switch (uniform.type) {
-            case mtUniformType::SAMPER2D:
-                binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                break;
-            default:
-                binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                break;
+        case mtUniformType::SAMPER2D:
+            binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            break;
+        default:
+            binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            break;
         }
 
-        program.bindings.push_back(binding);
+        vulkanProgram->bindings.push_back(binding);
 
         // Map uniform name to its binding index
-        program.uniformNameToBinding[uniform.name] = uniform.location;
+        vulkanProgram->uniformNameToBinding[uniform.name] = uniform.location;
 
         // Build pool sizes
         bool found = false;
-        for (auto& poolSize : program.poolSizes) {
+        for (auto &poolSize : vulkanProgram->poolSizes) {
             if (poolSize.type == binding.descriptorType) {
                 poolSize.descriptorCount += 1;
                 found = true;
@@ -151,44 +103,42 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
             VkDescriptorPoolSize poolSize{};
             poolSize.type = binding.descriptorType;
             poolSize.descriptorCount = MAX_FRAMES_IN_FLIGHT;
-            program.poolSizes.push_back(poolSize);
+            vulkanProgram->poolSizes.push_back(poolSize);
         }
     }
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = (u32)program.bindings.size();
-    layoutInfo.pBindings = program.bindings.data();
+    layoutInfo.bindingCount = (u32)vulkanProgram->bindings.size();
+    layoutInfo.pBindings = vulkanProgram->bindings.data();
 
-    VK_CHECK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &program.descriptorSetLayout));
+    VK_CHECK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &vulkanProgram->descriptorSetLayout));
 
     // Create descriptor pool
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = (u32)program.poolSizes.size();
-    poolInfo.pPoolSizes = program.poolSizes.data();
+    poolInfo.poolSizeCount = (u32)vulkanProgram->poolSizes.size();
+    poolInfo.pPoolSizes = vulkanProgram->poolSizes.data();
     poolInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
 
-    VK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &program.descriptorPool));
+    VK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &vulkanProgram->descriptorPool));
 
     // Allocate descriptor set
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = program.descriptorPool;
+    allocInfo.descriptorPool = vulkanProgram->descriptorPool;
     allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &program.descriptorSetLayout;
+    allocInfo.pSetLayouts = &vulkanProgram->descriptorSetLayout;
 
-    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &program.descriptorSet));
+    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &vulkanProgram->descriptorSet));
 
     // Create uniform buffer for this program
     VkDeviceSize bufferSize = sizeof(mtObjectUniformObject);
-    program.uniformBuffer = std::make_unique<mtVulkanBuffer>(
-        _device,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        true
-    );
+    vulkanProgram->uniformBuffer = std::make_unique<mtVulkanBuffer>(
+        _device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        true);
 
     // Create pipeline layout
     VkPushConstantRange pushConstant{};
@@ -199,11 +149,11 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &program.descriptorSetLayout;
+    pipelineLayoutInfo.pSetLayouts = &vulkanProgram->descriptorSetLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
 
-    VK_CHECK(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &program.pipelineLayout));
+    VK_CHECK(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &vulkanProgram->pipelineLayout));
 
     // Get viewport/scissor from swapchain
     u32 width = _device.getSwapChainWidth();
@@ -287,7 +237,8 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
     blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    blendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
     VkPipelineColorBlendStateCreateInfo blendState{};
     blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -305,13 +256,14 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
     pipelineInfo.stageCount = (u32)stageInfos.size();
     pipelineInfo.pStages = stageInfos.data();
     pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &blendState;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = program.pipelineLayout;
+    pipelineInfo.layout = vulkanProgram->pipelineLayout;
     pipelineInfo.renderPass = _materialShader.getRenderPassHandle();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -328,7 +280,7 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &blendState;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = program.pipelineLayout;
+    pipelineInfo.layout = vulkanProgram->pipelineLayout;
     pipelineInfo.renderPass = _materialShader.getRenderPassHandle();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -341,45 +293,44 @@ b8 mtVulkanProgramManager::createProgram(mtProgramHandle handle, VkShaderModule 
     vertexInput.vertexAttributeDescriptionCount = 2;
     vertexInput.pVertexAttributeDescriptions = attributeDescs;
 
-    VkResult result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &program.pipeline);
+    MT_LOG_INFO("mtVulkanProgramManager::createProgram 4");
+    VkResult result =
+        vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &vulkanProgram->pipeline);
     if (result != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create pipeline for custom program: {}", (s32)result);
         return false;
     }
 
-    MT_LOG_INFO("Created custom program at handle id {}", handle.id);
     return true;
 }
 
-void mtVulkanProgramManager::destroyProgram(mtProgramHandle handle) {
-    if (handle.id >= MT_SHADER_MAX_COUNT) return;
+void mtVulkanProgramManager::destroyProgram(mtProgram &program) {
 
-    mtVulkanProgram& program = _programs[handle.id];
-    if (program.pipeline == VK_NULL_HANDLE) return;
+    mtVulkanProgram *vulkanProgram = (mtVulkanProgram *)program.internalData;
+    if (vulkanProgram->pipeline == VK_NULL_HANDLE)
+        return;
 
     VkDevice device = _device.getLogicalDevice();
 
-    if (program.pipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(device, program.pipeline, nullptr);
-        program.pipeline = VK_NULL_HANDLE;
+    if (vulkanProgram->pipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(device, vulkanProgram->pipeline, nullptr);
+        vulkanProgram->pipeline = VK_NULL_HANDLE;
     }
-    if (program.pipelineLayout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(device, program.pipelineLayout, nullptr);
-        program.pipelineLayout = VK_NULL_HANDLE;
+    if (vulkanProgram->pipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(device, vulkanProgram->pipelineLayout, nullptr);
+        vulkanProgram->pipelineLayout = VK_NULL_HANDLE;
     }
-    if (program.descriptorSetLayout != VK_NULL_HANDLE) {
-        vkDestroyDescriptorSetLayout(device, program.descriptorSetLayout, nullptr);
-        program.descriptorSetLayout = VK_NULL_HANDLE;
+    if (vulkanProgram->descriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(device, vulkanProgram->descriptorSetLayout, nullptr);
+        vulkanProgram->descriptorSetLayout = VK_NULL_HANDLE;
     }
-    if (program.descriptorPool != VK_NULL_HANDLE) {
-        vkDestroyDescriptorPool(device, program.descriptorPool, nullptr);
-        program.descriptorPool = VK_NULL_HANDLE;
+    if (vulkanProgram->descriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(device, vulkanProgram->descriptorPool, nullptr);
+        vulkanProgram->descriptorPool = VK_NULL_HANDLE;
     }
-    program.uniformBuffer.reset();
-    program.bindings.clear();
-    program.poolSizes.clear();
-
-    MT_LOG_INFO("Destroyed custom program at handle id {}", handle.id);
+    vulkanProgram->uniformBuffer.reset();
+    vulkanProgram->bindings.clear();
+    vulkanProgram->poolSizes.clear();
 }
 
 void mtVulkanProgram::shutdown() {
@@ -402,44 +353,45 @@ void mtVulkanProgram::shutdown() {
     poolSizes.clear();
 }
 
-mtVulkanProgram* mtVulkanProgramManager::getProgram(mtProgramHandle handle) {
-    if (handle.id >= MT_SHADER_MAX_COUNT) return nullptr;
-    if (_programs[handle.id].pipeline == VK_NULL_HANDLE) return nullptr;
-    return &_programs[handle.id];
-}
+// mtVulkanProgram *mtVulkanProgramManager::getProgram(mtProgramHandle handle) {
+//     if (handle.id >= MT_SHADER_MAX_COUNT)
+//         return nullptr;
+//     if (_programs[handle.id].pipeline == VK_NULL_HANDLE)
+//         return nullptr;
+//     return &_programs[handle.id];
+// }
 
-b8 mtVulkanProgramManager::updateUniform(mtProgramHandle programHandle, const std::string& name, const void* data, u32 size) {
-    mtVulkanProgram* program = getProgram(programHandle);
-    if (!program) {
+b8 mtVulkanProgramManager::updateUniform(mtProgram &program, const std::string &name, const void *data, u32 size) {
+    mtVulkanProgram *vulkanProgram = (mtVulkanProgram *)program.internalData;
+    if (!vulkanProgram) {
         MT_LOG_ERROR("Invalid program handle for uniform update: '{}'", name);
         return false;
     }
 
     // Look up the binding index by uniform name
-    auto it = program->uniformNameToBinding.find(name);
-    if (it == program->uniformNameToBinding.end()) {
-        MT_LOG_WARN("Uniform '{}' not found in program {}", name, programHandle.id);
+    auto it = vulkanProgram->uniformNameToBinding.find(name);
+    if (it == vulkanProgram->uniformNameToBinding.end()) {
         return false;
     }
 
     u32 bindingIndex = it->second;
 
     // Find the matching binding descriptor
-    for (auto& binding : program->bindings) {
+    for (auto &binding : vulkanProgram->bindings) {
         if (binding.binding == bindingIndex) {
             if (binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
                 // Update uniform buffer
-                if (program->uniformBuffer) {
-                    program->uniformBuffer->loadData(0, size, 0, data);
+                if (vulkanProgram->uniformBuffer) {
+                    vulkanProgram->uniformBuffer->loadData(0, size, 0, data);
 
                     VkDescriptorBufferInfo bufferInfo{};
-                    bufferInfo.buffer = program->uniformBuffer->getHandle();
+                    bufferInfo.buffer = vulkanProgram->uniformBuffer->getHandle();
                     bufferInfo.offset = 0;
                     bufferInfo.range = size;
 
                     VkWriteDescriptorSet descriptorWrite{};
                     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    descriptorWrite.dstSet = program->descriptorSet;
+                    descriptorWrite.dstSet = vulkanProgram->descriptorSet;
                     descriptorWrite.dstBinding = binding.binding;
                     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                     descriptorWrite.descriptorCount = 1;
@@ -450,11 +402,11 @@ b8 mtVulkanProgramManager::updateUniform(mtProgramHandle programHandle, const st
                 }
             } else if (binding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
                 // For sampler bindings, data should be a VkDescriptorImageInfo
-                const VkDescriptorImageInfo* imageInfo = static_cast<const VkDescriptorImageInfo*>(data);
+                const VkDescriptorImageInfo *imageInfo = static_cast<const VkDescriptorImageInfo *>(data);
 
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrite.dstSet = program->descriptorSet;
+                descriptorWrite.dstSet = vulkanProgram->descriptorSet;
                 descriptorWrite.dstBinding = binding.binding;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;
@@ -466,6 +418,5 @@ b8 mtVulkanProgramManager::updateUniform(mtProgramHandle programHandle, const st
         }
     }
 
-    MT_LOG_WARN("Uniform '{}' binding not found in program {}", name, programHandle.id);
     return false;
 }

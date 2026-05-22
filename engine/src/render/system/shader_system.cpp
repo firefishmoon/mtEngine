@@ -1,16 +1,17 @@
 #include "render/system/shader_system.h"
 #include "core/loggersystem.h"
+#include "render/rendersystem.h"
 #include <fstream>
 #include <sstream>
 #include <vulkan/vulkan.h>
 
-// 着色器资源根目录（相对工作目录）
-static const char* SHADER_ASSET_DIR = "assets/shaders/";
+// 着色器资源根目录（相对于 bin 工作目录）
+static const char *SHADER_ASSET_DIR = "assets/shaders/";
 
 // ── 单例 ──────────────────────────────────────────────────────
-static mtShaderSystem* g_shaderSystem = nullptr;
+static mtShaderSystem *g_shaderSystem = nullptr;
 
-mtShaderSystem* mtShaderSystem::instance() {
+mtShaderSystem *mtShaderSystem::instance() {
     if (!g_shaderSystem) {
         g_shaderSystem = new mtShaderSystem();
     }
@@ -18,16 +19,16 @@ mtShaderSystem* mtShaderSystem::instance() {
 }
 
 // ── 初始化 / 关闭 ─────────────────────────────────────────────
-b8 mtShaderSystem::initialize(mtIRenderBackend* backend) {
-    _backend = backend;
+b8 mtShaderSystem::initialize() {
+    // _backend = backend;
     return true;
 }
 
 b8 mtShaderSystem::shutdown() {
-    for (auto& pair : _programs) {
-        _backend->destroyProgram(pair.second.program);
-        _backend->destroyShader(pair.second.vertShader);
-        _backend->destroyShader(pair.second.fragShader);
+    for (auto &pair : _programs) {
+        mtRenderSystem::getInstance()->destroyProgram(pair.second.program);
+        mtRenderSystem::getInstance()->destroyShader(pair.second.vertShader);
+        mtRenderSystem::getInstance()->destroyShader(pair.second.fragShader);
     }
     _programs.clear();
     delete g_shaderSystem;
@@ -36,7 +37,7 @@ b8 mtShaderSystem::shutdown() {
 }
 
 // ── 引用计数的 program 获取 ───────────────────────────────────
-mtProgramHandle mtShaderSystem::acquireProgram(const std::string& shaderName) {
+mtProgramHandle mtShaderSystem::acquireProgram(const std::string &shaderName) {
     // 已经加载过
     auto it = _programs.find(shaderName);
     if (it != _programs.end()) {
@@ -54,7 +55,7 @@ mtProgramHandle mtShaderSystem::acquireProgram(const std::string& shaderName) {
     }
 
     // 2. 读取 SPIR-V 二进制
-    auto readBinary = [](const std::string& path) -> std::vector<u8> {
+    auto readBinary = [](const std::string &path) -> std::vector<u8> {
         std::ifstream f(path, std::ios::binary | std::ios::ate);
         if (!f) {
             MT_LOG_ERROR("Cannot open shader binary: {}", path);
@@ -63,37 +64,38 @@ mtProgramHandle mtShaderSystem::acquireProgram(const std::string& shaderName) {
         std::streamsize size = f.tellg();
         f.seekg(0);
         std::vector<u8> buf(size);
-        if (size > 0 && !f.read(reinterpret_cast<char*>(buf.data()), size)) {
+        if (size > 0 && !f.read(reinterpret_cast<char *>(buf.data()), size)) {
             return {};
         }
         return buf;
     };
 
-    std::vector<u8> vertBytes = readBinary(std::string(SHADER_ASSET_DIR) + vertFile);
-    std::vector<u8> fragBytes = readBinary(std::string(SHADER_ASSET_DIR) + fragFile);
+    // MT_LOG_INFO("mtShaderSystem loading file {}", vertFile);
+    std::vector<u8> vertBytes = readBinary(std::string(SHADER_ASSET_DIR) + vertFile + ".spv");
+    // MT_LOG_INFO("mtShaderSystem loading file {}", fragFile);
+    std::vector<u8> fragBytes = readBinary(std::string(SHADER_ASSET_DIR) + fragFile + ".spv");
     if (vertBytes.empty() || fragBytes.empty()) {
         return {mtShaderHandle::INVALID_HANDLE};
     }
 
     // 3. 创建着色器阶段
-    mtShaderHandle vertHandle = _backend->createShader(
-        vertBytes.data(), static_cast<u32>(vertBytes.size()), VK_SHADER_STAGE_VERTEX_BIT);
-    mtShaderHandle fragHandle = _backend->createShader(
-        fragBytes.data(), static_cast<u32>(fragBytes.size()), VK_SHADER_STAGE_FRAGMENT_BIT);
+    mtShaderHandle vertHandle = mtRenderSystem::getInstance()->createShader(
+        vertBytes.data(), static_cast<u32>(vertBytes.size()), mtShaderType::VERTEX);
+    mtShaderHandle fragHandle = mtRenderSystem::getInstance()->createShader(
+        fragBytes.data(), static_cast<u32>(fragBytes.size()), mtShaderType::FRAGMENT);
 
-    if (vertHandle.id == mtShaderHandle::INVALID_HANDLE ||
-        fragHandle.id == mtShaderHandle::INVALID_HANDLE) {
+    if (vertHandle.id == mtShaderHandle::INVALID_HANDLE || fragHandle.id == mtShaderHandle::INVALID_HANDLE) {
         MT_LOG_ERROR("Failed to create shader modules for '{}'", shaderName);
         return {mtProgramHandle::INVALID_HANDLE};
     }
 
     // 4. 创建 program
-    mtProgramHandle progHandle = _backend->createProgram(vertHandle, fragHandle, config);
+    mtProgramHandle progHandle = mtRenderSystem::getInstance()->createProgram(vertHandle, fragHandle, config);
     if (progHandle.id == mtProgramHandle::INVALID_HANDLE) {
         MT_LOG_ERROR("Failed to create program '{}'", shaderName);
         // 销毁已创建的 shader module
-        _backend->destroyShader(vertHandle);
-        _backend->destroyShader(fragHandle);
+        mtRenderSystem::getInstance()->destroyShader(vertHandle);
+        mtRenderSystem::getInstance()->destroyShader(fragHandle);
         return {mtProgramHandle::INVALID_HANDLE};
     }
 
@@ -101,52 +103,63 @@ mtProgramHandle mtShaderSystem::acquireProgram(const std::string& shaderName) {
     ShaderProgram sp;
     sp.vertShader = vertHandle;
     sp.fragShader = fragHandle;
-    sp.program    = progHandle;
-    sp.config     = config;
-    sp.refCount   = 1;
+    sp.program = progHandle;
+    sp.config = config;
+    sp.refCount = 1;
     _programs[shaderName] = sp;
 
     MT_LOG_INFO("Shader program '{}' loaded (program={})", shaderName, progHandle.id);
     return progHandle;
 }
 
-void mtShaderSystem::releaseProgram(const std::string& shaderName) {
+void mtShaderSystem::releaseProgram(const std::string &shaderName) {
     auto it = _programs.find(shaderName);
-    if (it == _programs.end()) return;
+    if (it == _programs.end())
+        return;
 
     if (--it->second.refCount == 0) {
-        _backend->destroyProgram(it->second.program);
-        _backend->destroyShader(it->second.vertShader);
-        _backend->destroyShader(it->second.fragShader);
+        mtRenderSystem::getInstance()->destroyProgram(it->second.program);
+        mtRenderSystem::getInstance()->destroyShader(it->second.vertShader);
+        mtRenderSystem::getInstance()->destroyShader(it->second.fragShader);
         _programs.erase(it);
         MT_LOG_INFO("Shader program '{}' released", shaderName);
     }
 }
 
 // ── YAML 解析 (yaml-cpp) ──────────────────────────────────────
-static mtUniformType parseUniformType(const std::string& typeStr) {
-    if (typeStr == "f32")      return mtUniformType::F32;
-    if (typeStr == "f32_2")    return mtUniformType::F32_2;
-    if (typeStr == "f32_3")    return mtUniformType::F32_3;
-    if (typeStr == "f32_4")    return mtUniformType::F32_4;
-    if (typeStr == "s8")       return mtUniformType::S8;
-    if (typeStr == "u8")       return mtUniformType::U8;
-    if (typeStr == "s16")      return mtUniformType::S16;
-    if (typeStr == "u16")      return mtUniformType::U16;
-    if (typeStr == "s32")      return mtUniformType::S32;
-    if (typeStr == "u32")      return mtUniformType::U32;
-    if (typeStr == "mat3")     return mtUniformType::MAT3;
-    if (typeStr == "mat4")     return mtUniformType::MAT4;
-    if (typeStr == "samp" || typeStr == "sampler2D") return mtUniformType::SAMPER2D;
+static mtUniformType parseUniformType(const std::string &typeStr) {
+    if (typeStr == "f32")
+        return mtUniformType::F32;
+    if (typeStr == "vec2")
+        return mtUniformType::VEC2;
+    if (typeStr == "vec3")
+        return mtUniformType::VEC3;
+    if (typeStr == "vec4")
+        return mtUniformType::VEC4;
+    if (typeStr == "s8")
+        return mtUniformType::S8;
+    if (typeStr == "u8")
+        return mtUniformType::U8;
+    if (typeStr == "s16")
+        return mtUniformType::S16;
+    if (typeStr == "u16")
+        return mtUniformType::U16;
+    if (typeStr == "s32")
+        return mtUniformType::S32;
+    if (typeStr == "u32")
+        return mtUniformType::U32;
+    if (typeStr == "mat3")
+        return mtUniformType::MAT3;
+    if (typeStr == "mat4")
+        return mtUniformType::MAT4;
+    if (typeStr == "samp" || typeStr == "sampler2D")
+        return mtUniformType::SAMPER2D;
     MT_LOG_WARN("Unknown uniform type '{}', fallback to F32", typeStr);
     return mtUniformType::F32;
 }
 
-b8 mtShaderSystem::parseShaderYaml(const std::string& yamlPath,
-                                   std::string&        outName,
-                                   std::string&        outVert,
-                                   std::string&        outFrag,
-                                   mtProgramConfig&    outConfig) {
+b8 mtShaderSystem::parseShaderYaml(const std::string &yamlPath, std::string &outName, std::string &outVert,
+                                   std::string &outFrag, mtProgramConfig &outConfig) {
     try {
         YAML::Node doc = YAML::LoadFile(yamlPath);
 
@@ -169,7 +182,7 @@ b8 mtShaderSystem::parseShaderYaml(const std::string& yamlPath,
         outFrag = doc["frag"].as<std::string>();
 
         if (doc["uniforms"] && doc["uniforms"].IsSequence()) {
-            for (const auto& uniNode : doc["uniforms"]) {
+            for (const auto &uniNode : doc["uniforms"]) {
                 mtUniform uni;
 
                 if (uniNode["name"]) {
@@ -179,13 +192,10 @@ b8 mtShaderSystem::parseShaderYaml(const std::string& yamlPath,
                     continue;
                 }
 
-                uni.type = uniNode["type"] ?
-                    parseUniformType(uniNode["type"].as<std::string>()) :
-                    mtUniformType::F32;
+                uni.type = uniNode["type"] ? parseUniformType(uniNode["type"].as<std::string>()) : mtUniformType::F32;
 
-                uni.scope = uniNode["scope"] ?
-                    static_cast<mtUniformScope>(uniNode["scope"].as<u32>()) :
-                    mtUniformScope::GLOBAL;
+                uni.scope =
+                    uniNode["scope"] ? static_cast<mtUniformScope>(uniNode["scope"].as<u32>()) : mtUniformScope::GLOBAL;
 
                 uni.location = static_cast<u32>(outConfig.uniforms.size());
 
@@ -193,11 +203,11 @@ b8 mtShaderSystem::parseShaderYaml(const std::string& yamlPath,
             }
         }
 
-        MT_LOG_INFO("Parsed shader yaml: {} (vert={}, frag={}, uniforms={})",
-                    outName, outVert, outFrag, outConfig.uniforms.size());
+        MT_LOG_INFO("Parsed shader yaml: {} (vert={}, frag={}, uniforms={})", outName, outVert, outFrag,
+                    outConfig.uniforms.size());
         return true;
 
-    } catch (const YAML::Exception& e) {
+    } catch (const YAML::Exception &e) {
         MT_LOG_ERROR("YAML parse error in {}: {}", yamlPath, e.what());
         return false;
     }

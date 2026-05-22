@@ -5,6 +5,7 @@
 #include "core/memorysystem.h"
 #include "core/std_wrapper.h"
 #include "render/rendersystem.h"
+#include "render/system/shader_system.h"
 #include "render/system/texture_system.h"
 #include <chrono>
 #include <coroutine>
@@ -107,7 +108,7 @@ void test_event() {
 
 mtGeometry geometry;
 
-void initShaders() {}
+void initShaders() { geometry.programHandle = mtShaderSystem::instance()->acquireProgram("Builtin.Shader"); }
 
 int main() {
     mtAppConfig config = {"testbed", 800, 600};
@@ -129,7 +130,8 @@ int main() {
         // geometry.texture = mtRenderSystem::getInstance()->acquireTexture("cobblestone", info, true);
         texture1 = mtTextureSystem::getInstance()->acquireTexture("cobblestone", info, true);
         texture2 = mtTextureSystem::getInstance()->acquireTexture("paving", info, true);
-        geometry.textureHandle.id = texture1.id;
+        // geometry.textureHandle.id = texture1.id;
+        initShaders();
     });
 
     mtLoggerSystem::getInstance()->setLogLevel(LogLevel::DEBUG);

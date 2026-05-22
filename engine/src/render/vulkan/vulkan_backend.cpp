@@ -1,27 +1,23 @@
+#include "core/memorysystem.h"
+#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <vector>
 #include <set>
+#include <vector>
 #define VK_USE_PLATFORM_WIN32_KHR
-#include "vulkan_backend.h"
+#include "../render_types.h"
 #include "core/loggersystem.h"
+#include "vulkan_backend.h"
 #include "vulkan_buffer.h"
 #include "vulkan_program.h"
-#include <windows.h>
 #include <assert.h>
 #include <glm/glm.hpp>
-#include "../render_types.h"
+#include <windows.h>
 
 constexpr bool enableValidationLayers = true;
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
+const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-
+const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 b8 mtVulkanBackend::initialize(u32 width, u32 height) {
     MT_LOG_INFO("Initializing Vulkan Backend");
@@ -53,7 +49,8 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
         return false;
     }
 
-    _programManager = std::make_unique<mtVulkanProgramManager>(*_vulkanContext.getVulkanDevice(), _vulkanContext.getMaterialShader());
+    _programManager =
+        std::make_unique<mtVulkanProgramManager>(*_vulkanContext.getVulkanDevice(), _vulkanContext.getMaterialShader());
     MAX_FRAMES_IN_FLIGHT = _vulkanContext.getVulkanSwapChain()->getImageCount();
 
     // test code
@@ -87,25 +84,15 @@ b8 mtVulkanBackend::initialize(u32 width, u32 height) {
     const u32 index_count = 6;
     u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
 
-    uploadDataRange(
-        _vulkanContext.getVulkanDevice()->getGraphicsCommandPool(),
-        0,
-        _vulkanContext.getVulkanDevice()->getGraphicsQueue(),
-        _vulkanContext.getVertexBuffer(),
-        0,
-        sizeof(mtVertex) * vert_count,
-        verts);
+    uploadDataRange(_vulkanContext.getVulkanDevice()->getGraphicsCommandPool(), 0,
+                    _vulkanContext.getVulkanDevice()->getGraphicsQueue(), _vulkanContext.getVertexBuffer(), 0,
+                    sizeof(mtVertex) * vert_count, verts);
 
     MT_LOG_INFO("Vertex buffer uploaded with {} vertices", vert_count);
 
-    uploadDataRange(
-        _vulkanContext.getVulkanDevice()->getGraphicsCommandPool(),
-        0,
-        _vulkanContext.getVulkanDevice()->getGraphicsQueue(),
-        _vulkanContext.getIndexBuffer(),
-        0,
-        sizeof(u32) * index_count,
-        indices);
+    uploadDataRange(_vulkanContext.getVulkanDevice()->getGraphicsCommandPool(), 0,
+                    _vulkanContext.getVulkanDevice()->getGraphicsQueue(), _vulkanContext.getIndexBuffer(), 0,
+                    sizeof(u32) * index_count, indices);
 
     MT_LOG_INFO("Index buffer uploaded with {} indices", index_count);
 
@@ -137,34 +124,27 @@ b8 mtVulkanBackend::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
+    for (const auto &extension : availableExtensions) {
         requiredExtensions.erase(extension.extensionName);
     }
 
     return requiredExtensions.empty();
 }
 
-
 b8 mtVulkanBackend::createFramebuffers() {
     // _swapChainFramebuffers.resize(_vulkanContext._vulkanSwapChain._swapChainImageViews.size());
 
     for (size_t i = 0; i < _vulkanContext.getVulkanSwapChain()->getSwapChainImageViews().size(); i++) {
-        mtVector<VkImageView> vector = {
-            _vulkanContext.getVulkanSwapChain()->getSwapChainImageViews()[i],
-            _vulkanContext.getVulkanSwapChain()->getDepthAttachment().getImageView()
-        };
+        mtVector<VkImageView> vector = {_vulkanContext.getVulkanSwapChain()->getSwapChainImageViews()[i],
+                                        _vulkanContext.getVulkanSwapChain()->getDepthAttachment().getImageView()};
 
         _vulkanContext.getVulkanSwapChain()->getFramebuffers()[i].initialize(
-            &_vulkanContext,
-            _vulkanContext.getMainRenderPass(),
-            _vulkanContext.getWidth(),
-            _vulkanContext.getHeight(),
+            &_vulkanContext, _vulkanContext.getMainRenderPass(), _vulkanContext.getWidth(), _vulkanContext.getHeight(),
             vector);
     }
 
     return true;
 }
-
 
 b8 mtVulkanBackend::recreateSwapChain() {
     vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
@@ -203,10 +183,13 @@ b8 mtVulkanBackend::renderPrepare() {
     VkDevice device = _vulkanContext.getVulkanDevice()->getLogicalDevice();
     VkSwapchainKHR swapChain = _vulkanContext.getVulkanSwapChain()->getHandle();
 
-    vkWaitForFences(device, 1, &_vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &_vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()], VK_TRUE,
+                    UINT64_MAX);
 
     u32 imageIndex = 0;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, _vulkanContext.getImageAvailableSemaphores()[_vulkanContext.getCurrentFrame()], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(
+        device, swapChain, UINT64_MAX, _vulkanContext.getImageAvailableSemaphores()[_vulkanContext.getCurrentFrame()],
+        VK_NULL_HANDLE, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return recreateSwapChain();
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -226,10 +209,11 @@ b8 mtVulkanBackend::renderPrepare() {
 
 b8 mtVulkanBackend::renderBegin() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer &commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     commandBuffer.begin();
-    mtVulkanFrameBuffer& frameBuffer = _vulkanContext.getVulkanSwapChain()->getFramebuffers()[_vulkanContext.getVulkanSwapChain()->getImageIndex()];
+    mtVulkanFrameBuffer &frameBuffer =
+        _vulkanContext.getVulkanSwapChain()->getFramebuffers()[_vulkanContext.getVulkanSwapChain()->getImageIndex()];
 
     // Dynamic state
     VkViewport viewport;
@@ -249,7 +233,6 @@ b8 mtVulkanBackend::renderBegin() {
     vkCmdSetViewport(commandBuffer.getHandle(), 0, 1, &viewport);
     vkCmdSetScissor(commandBuffer.getHandle(), 0, 1, &scissor);
 
-
     _vulkanContext.getMainRenderPass()->setExtent(_vulkanContext.getWidth(), _vulkanContext.getHeight());
 
     _vulkanContext.getMainRenderPass()->begin(commandBuffer, frameBuffer);
@@ -259,7 +242,7 @@ b8 mtVulkanBackend::renderBegin() {
 
 b8 mtVulkanBackend::renderEnd() {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer &commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     _vulkanContext.getMainRenderPass()->end(commandBuffer);
 
@@ -281,7 +264,8 @@ b8 mtVulkanBackend::renderEnd() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo, _vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()]) != VK_SUCCESS) {
+    if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo,
+                      _vulkanContext.getInFlightFences()[_vulkanContext.getCurrentFrame()]) != VK_SUCCESS) {
         MT_LOG_ERROR("Failed to submit draw command buffer!");
         throw std::runtime_error("Failed to submit draw command buffer!");
         return false;
@@ -295,7 +279,8 @@ b8 mtVulkanBackend::renderPresent() {
     return true;
 }
 
-void mtVulkanBackend::uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, mtVulkanBuffer& buffer, u64 offset, u64 size, void* data) {
+void mtVulkanBackend::uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, mtVulkanBuffer &buffer,
+                                      u64 offset, u64 size, void *data) {
     VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     mtVulkanBuffer staging(*_vulkanContext.getVulkanDevice(), size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true);
     // staging.initialize(&_vulkanContext, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true);
@@ -309,19 +294,14 @@ void mtVulkanBackend::uploadDataRange(VkCommandPool pool, VkFence fence, VkQueue
     // staging.shutdown();
 }
 
-void mtVulkanBackend::updateGlobalState(
-        glm::mat4 projection,
-        glm::mat4 view,
-        glm::vec3 viewPosition,
-        glm::vec4 ambientColor,
-        s32 mode
-    ) {
+void mtVulkanBackend::updateGlobalState(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPosition,
+                                        glm::vec4 ambientColor, s32 mode) {
 
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer &commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     // vulkan_object_shader_use(&context, &context.object_shader);
-    mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
+    mtVulkanMaterialShader &materialShader = _vulkanContext.getMaterialShader();
     materialShader.use();
 
     materialShader.setProjection(projection);
@@ -331,54 +311,54 @@ void mtVulkanBackend::updateGlobalState(
 
     // vulkan_object_shader_update_global_state(&context, &context.object_shader);
     materialShader.updateGlobalState();
-
 }
 
-void mtVulkanBackend::updateObject(const mtRenderGeometry& geometry) {
+void mtVulkanBackend::updateObject(const mtRenderGeometry &geometry) {
     auto _pCommandBuffers = _vulkanContext.getVulkanCommandBuffers();
-    mtVulkanCommandBuffer& commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
+    mtVulkanCommandBuffer &commandBuffer = *(*_pCommandBuffers)[_vulkanContext.getCurrentFrame()];
 
     // Bind vertex buffer at offset.
     VkDeviceSize offsets[1] = {0};
     VkBuffer vertexBuffer = _vulkanContext.getVertexBuffer().getHandle();
-    vkCmdBindVertexBuffers(commandBuffer.getHandle(), 0, 1, &vertexBuffer, (VkDeviceSize*)offsets);
+    vkCmdBindVertexBuffers(commandBuffer.getHandle(), 0, 1, &vertexBuffer, (VkDeviceSize *)offsets);
 
     // Bind index buffer at offset.
-    vkCmdBindIndexBuffer(commandBuffer.getHandle(), _vulkanContext.getIndexBuffer().getHandle(), 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer.getHandle(), _vulkanContext.getIndexBuffer().getHandle(), 0,
+                         VK_INDEX_TYPE_UINT32);
 
     // Check if geometry has a custom program
-    if (geometry.geometry.programHandle.id != mtProgramHandle::INVALID_HANDLE &&
-        geometry.geometry.programHandle.id != 0) {
+    if (geometry.program) {
         // Use custom program
-        mtVulkanProgram* program = _programManager->getProgram(geometry.geometry.programHandle);
+        mtVulkanProgram *program = (mtVulkanProgram *)geometry.program->internalData;
         if (program && program->pipeline != VK_NULL_HANDLE) {
             // Bind custom pipeline
             vkCmdBindPipeline(commandBuffer.getHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipeline);
 
             // Auto-update texture uniform if texture is present and program has a sampler binding
-            if (geometry.texture && program->uniformNameToBinding.count("u_DiffuseTexture") > 0) {
-                mtTextureInternalData* internalData = (mtTextureInternalData*)geometry.texture->internalData;
-                if (internalData) {
-                    VkDescriptorImageInfo imageInfo{};
-                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    imageInfo.imageView = internalData->image->getImageView();
-                    imageInfo.sampler = internalData->sampler;
-                    _programManager->updateUniform(geometry.geometry.programHandle, "u_DiffuseTexture", &imageInfo, sizeof(VkDescriptorImageInfo));
-                }
-            }
+            // if (geometry.texture && program->uniformNameToBinding.count("u_DiffuseTexture") > 0) {
+            //     mtTextureInternalData *internalData = (mtTextureInternalData *)geometry.texture->internalData;
+            //     if (internalData) {
+            //         VkDescriptorImageInfo imageInfo{};
+            //         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            //         imageInfo.imageView = internalData->image->getImageView();
+            //         imageInfo.sampler = internalData->sampler;
+            //         _programManager->updateUniform(*geometry.program, "u_DiffuseTexture", &imageInfo,
+            //                                        sizeof(VkDescriptorImageInfo));
+            //     }
+            // }
 
             // Bind descriptor sets for custom program
             VkDescriptorSet sets[] = {program->descriptorSet};
-            vkCmdBindDescriptorSets(commandBuffer.getHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    program->pipelineLayout, 0, 1, sets, 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffer.getHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipelineLayout,
+                                    0, 1, sets, 0, nullptr);
 
             // Push model matrix
-            vkCmdPushConstants(commandBuffer.getHandle(), program->pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &geometry.geometry.model);
+            vkCmdPushConstants(commandBuffer.getHandle(), program->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                               sizeof(glm::mat4), &geometry.geometry.model);
         }
     } else {
         // Use built-in material shader
-        mtVulkanMaterialShader& materialShader = _vulkanContext.getMaterialShader();
+        mtVulkanMaterialShader &materialShader = _vulkanContext.getMaterialShader();
         materialShader.updateObject(geometry);
         materialShader.use();
     }
@@ -390,123 +370,60 @@ void mtVulkanBackend::updateObject(const mtRenderGeometry& geometry) {
 //
 // Shader management
 //
-mtShaderHandle mtVulkanBackend::createShader(const u8* data, u32 dataSize, u32 stage) {
+void mtVulkanBackend::createShader(const u8 *data, u32 dataSize, mtShaderType type, mtShader &shader) {
+    MT_LOG_INFO("mtVulkanBackend::createShader");
+    u32 stage = VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
+    if (type == mtShaderType::FRAGMENT) {
+        stage = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
     VkShaderModule module = _programManager->createShaderModule(data, dataSize, (VkShaderStageFlagBits)stage);
-    mtShaderHandle handle = {MT_SHADER_MAX_COUNT};
 
     if (module == VK_NULL_HANDLE) {
-        handle.id = mtShaderHandle::INVALID_HANDLE;
-        return handle;
+        return;
     }
-
-    // Find a free slot in the shader pool
-    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_shaderPool[i].id == 0) {
-            _shaderPool[i].id = i + 1; // +1 to distinguish from INVALID_HANDLE (0xFFFF)
-            _shaderPool[i].internalData = module;
-            handle.id = _shaderPool[i].id;
-            MT_LOG_INFO("Created shader with handle id {}", handle.id);
-            break;
-        }
-    }
-
-    if (handle.id == MT_SHADER_MAX_COUNT) {
-        MT_LOG_ERROR("Shader pool is full");
-        handle.id = mtShaderHandle::INVALID_HANDLE;
-        vkDestroyShaderModule(_vulkanContext.getVulkanDevice()->getLogicalDevice(), module, nullptr);
-    }
-
-    return handle;
+    shader.internalData = mtMemorySystem::getInstance()->allocate(mtMemTag::RENDERING, sizeof(mtVulkanShader));
+    mtVulkanShader *vulkanShader = (mtVulkanShader *)shader.internalData;
+    vulkanShader->module = module;
+    vulkanShader->stage = (VkShaderStageFlagBits)stage;
+    return;
 }
 
-void mtVulkanBackend::destroyShader(mtShaderHandle handle) {
-    if (handle.id == mtShaderHandle::INVALID_HANDLE || handle.id == 0) return;
-
-    u32 index = handle.id - 1;
-    if (index >= MT_SHADER_MAX_COUNT) return;
-    if (_shaderPool[index].id == 0) return;
-
-    VkShaderModule module = (VkShaderModule)_shaderPool[index].internalData;
-    _programManager->destroyShaderModule(module);
-
-    _shaderPool[index].id = 0;
-    _shaderPool[index].internalData = nullptr;
+void mtVulkanBackend::destroyShader(mtShader &shader) {
+    mtVulkanShader *vulkanShader = (mtVulkanShader *)shader.internalData;
+    _programManager->destroyShaderModule(vulkanShader->module);
+    mtMemorySystem::getInstance()->deallocate(vulkanShader);
+    shader.internalData = 0;
 }
 
 //
 // Program management
 //
-mtProgramHandle mtVulkanBackend::createProgram(mtShaderHandle vertexShader, mtShaderHandle fragmentShader, mtProgramConfig& config) {
+void mtVulkanBackend::createProgram(mtShader &vertexShader, mtShader &fragmentShader, mtProgramConfig &config,
+                                    mtProgram &program) {
     VkShaderModule vertModule = VK_NULL_HANDLE;
     VkShaderModule fragModule = VK_NULL_HANDLE;
 
-    // Look up the actual Vulkan shader modules from handles
-    if (vertexShader.id != mtShaderHandle::INVALID_HANDLE && vertexShader.id != 0) {
-        u32 idx = vertexShader.id - 1;
-        if (idx < MT_SHADER_MAX_COUNT && _shaderPool[idx].id != 0) {
-            vertModule = (VkShaderModule)_shaderPool[idx].internalData;
-        }
-    }
+    vertModule = ((mtVulkanShader *)vertexShader.internalData)->module;
+    fragModule = ((mtVulkanShader *)fragmentShader.internalData)->module;
 
-    if (fragmentShader.id != mtShaderHandle::INVALID_HANDLE && fragmentShader.id != 0) {
-        u32 idx = fragmentShader.id - 1;
-        if (idx < MT_SHADER_MAX_COUNT && _shaderPool[idx].id != 0) {
-            fragModule = (VkShaderModule)_shaderPool[idx].internalData;
-        }
-    }
-
-    // Find a free slot in the program pool
-    u32 freeIndex = MT_SHADER_MAX_COUNT;
-    for (u32 i = 0; i < MT_SHADER_MAX_COUNT; ++i) {
-        if (_programPool[i].id == 0) {
-            freeIndex = i;
-            break;
-        }
-    }
-
-    if (freeIndex == MT_SHADER_MAX_COUNT) {
-        MT_LOG_ERROR("Program pool is full");
-        return {mtProgramHandle::INVALID_HANDLE};
-    }
-
-    mtProgramHandle handle = {(freeIndex + 1)}; // +1 to distinguish from INVALID_HANDLE
-
-    if (!_programManager->createProgram(handle, vertModule, fragModule, config)) {
+    if (!_programManager->createProgram(vertModule, fragModule, config, program)) {
         MT_LOG_ERROR("Failed to create program");
-        return {mtProgramHandle::INVALID_HANDLE};
     }
-
-    _programPool[freeIndex].id = handle.id;
-    _programPool[freeIndex].internalData = _programManager->getProgram(handle);
-
-    MT_LOG_INFO("Created program with handle id {}", handle.id);
-    return handle;
 }
 
-void mtVulkanBackend::destroyProgram(mtProgramHandle handle) {
-    if (handle.id == 0 || handle.id == mtProgramHandle::INVALID_HANDLE) return;
-
-    u32 index = handle.id - 1;
-    if (index >= MT_SHADER_MAX_COUNT) return;
-    if (_programPool[index].id == 0) return;
-
-    _programManager->destroyProgram(handle);
-
-    _programPool[index].id = 0;
-    _programPool[index].internalData = nullptr;
-}
+void mtVulkanBackend::destroyProgram(mtProgram &program) { _programManager->destroyProgram(program); }
 
 //
 // Uniform updates
 //
-void mtVulkanBackend::updateUniform(mtProgramHandle program, const std::string& name, const void* data, u32 size) {
+void mtVulkanBackend::updateUniform(mtProgram &program, const std::string &name, const void *data, u32 size) {
     _programManager->updateUniform(program, name, data, size);
 }
 
-void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {
+void mtVulkanBackend::createTexture(const u8 *pixels, mtTexture &texture) {
 
     texture.internalData = MT_ALLOCATE(mtMemTag::RENDERING, sizeof(mtTextureInternalData));
-    mtTextureInternalData* internalData = (mtTextureInternalData*)texture.internalData;
+    mtTextureInternalData *internalData = (mtTextureInternalData *)texture.internalData;
 
     VkDeviceSize imageSize = texture.width * texture.height * texture.channelCount;
     VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
@@ -514,25 +431,18 @@ void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {
     VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-
     mtVulkanBuffer stagingBuffer(*_vulkanContext.getVulkanDevice(), imageSize, usage, properties, true);
 
-    stagingBuffer.loadData(0, imageSize, 0, (void*)pixels);
+    stagingBuffer.loadData(0, imageSize, 0, (void *)pixels);
 
-    //MT_LOG_INFO("internalData: {}, {}", (long long)internalData->image, internalData->sampler);
+    // MT_LOG_INFO("internalData: {}, {}", (long long)internalData->image, internalData->sampler);
 
-    //internalData->image = std::make_unique<mtVulkanImage>(
-    internalData->image = new mtVulkanImage(
-        *_vulkanContext.getVulkanDevice(),
-        texture.width,
-        texture.height,
-        imageFormat,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        true,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        1);
+    // internalData->image = std::make_unique<mtVulkanImage>(
+    internalData->image = new mtVulkanImage(*_vulkanContext.getVulkanDevice(), texture.width, texture.height,
+                                            imageFormat, VK_IMAGE_TILING_OPTIMAL,
+                                            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
     // mtVulkanImage textureImage(
     //     *_vulkanContext.getVulkanDevice(),
@@ -540,23 +450,24 @@ void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {
     //     height,
     //     imageFormat,
     //     VK_IMAGE_TILING_OPTIMAL,
-    //     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-    //     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-    //     true,
-    //     VK_IMAGE_ASPECT_COLOR_BIT,
+    //     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+    //     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true, VK_IMAGE_ASPECT_COLOR_BIT,
     //     1);
 
-    mtVulkanCommandBuffer tempBuffer(*_vulkanContext.getVulkanDevice(), _vulkanContext.getVulkanDevice()->getGraphicsCommandPool());
+    mtVulkanCommandBuffer tempBuffer(*_vulkanContext.getVulkanDevice(),
+                                     _vulkanContext.getVulkanDevice()->getGraphicsCommandPool());
     tempBuffer.begin();
 
     // Transition the image layout to be optimal for receiving data.
-    internalData->image->transitionLayout(tempBuffer.getHandle(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    internalData->image->transitionLayout(tempBuffer.getHandle(), VK_IMAGE_LAYOUT_UNDEFINED,
+                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // Copy the data from the staging buffer to the image.
     internalData->image->copyFromBuffer(tempBuffer.getHandle(), stagingBuffer.getHandle());
 
     // Transition the image layout to be optimal for shader access.
-    internalData->image->transitionLayout(tempBuffer.getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    internalData->image->transitionLayout(tempBuffer.getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     tempBuffer.end();
 
@@ -567,7 +478,8 @@ void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {
     VkCommandBuffer cb = tempBuffer.getHandle();
     submitInfo.pCommandBuffers = &cb;
 
-    if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    if (vkQueueSubmit(_vulkanContext.getVulkanDevice()->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) !=
+        VK_SUCCESS) {
         MT_LOG_ERROR("Failed to submit command buffer for texture upload!");
     }
     vkQueueWaitIdle(_vulkanContext.getVulkanDevice()->getGraphicsQueue());
@@ -591,18 +503,18 @@ void mtVulkanBackend::createTexture(const u8* pixels, mtTexture& texture) {
     samplerInfo.maxLod = 0.0f;
 
     VkSampler textureSampler;
-    if (vkCreateSampler(_vulkanContext.getVulkanDevice()->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(_vulkanContext.getVulkanDevice()->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler) !=
+        VK_SUCCESS) {
         MT_LOG_ERROR("Failed to create texture sampler!");
     }
 
     internalData->sampler = textureSampler;
 }
 
-
-void mtVulkanBackend::destroyTexture(mtTexture& texture) {
+void mtVulkanBackend::destroyTexture(mtTexture &texture) {
     if (texture.internalData) {
         vkDeviceWaitIdle(_vulkanContext.getVulkanDevice()->getLogicalDevice());
-        mtTextureInternalData* internalData = (mtTextureInternalData*)texture.internalData;
+        mtTextureInternalData *internalData = (mtTextureInternalData *)texture.internalData;
         delete internalData->image;
         vkDestroySampler(_vulkanContext.getVulkanDevice()->getLogicalDevice(), internalData->sampler, nullptr);
         MT_FREE(texture.internalData);

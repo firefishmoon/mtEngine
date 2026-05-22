@@ -5,10 +5,10 @@
 #include "render/vulkan/vulkan_buffer.h"
 #include <glm/glm.hpp>
 #include <memory>
-#include <vulkan/vulkan.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 class mtVulkanDevice;
 class mtVulkanMaterialShader;
@@ -32,46 +32,41 @@ struct mtVulkanProgram {
 
     std::unique_ptr<mtVulkanBuffer> uniformBuffer;
 
-    ~mtVulkanProgram() {
-        shutdown();
-    }
+    ~mtVulkanProgram() { shutdown(); }
 
     void shutdown();
 };
 
+struct mtVulkanShader {
+    VkShaderModule module = VK_NULL_HANDLE;
+    VkShaderStageFlagBits stage;
+    u32 refCount = 0;
+};
+
 class mtVulkanProgramManager {
-public:
-    mtVulkanProgramManager(mtVulkanDevice& device, mtVulkanMaterialShader& materialShader);
+  public:
+    mtVulkanProgramManager(mtVulkanDevice &device, mtVulkanMaterialShader &materialShader);
     ~mtVulkanProgramManager();
 
     // Create a shader module from SPIR-V bytes and return its handle
-    VkShaderModule createShaderModule(const u8* data, u32 dataSize, VkShaderStageFlagBits stage);
+    VkShaderModule createShaderModule(const u8 *data, u32 dataSize, VkShaderStageFlagBits stage);
     void destroyShaderModule(VkShaderModule module);
 
     // Create a program from vertex/fragment shader modules
-    b8 createProgram(mtProgramHandle handle, VkShaderModule vertModule, VkShaderModule fragModule, mtProgramConfig& config);
-    void destroyProgram(mtProgramHandle handle);
-
-    // Get program by handle
-    mtVulkanProgram* getProgram(mtProgramHandle handle);
+    b8 createProgram(VkShaderModule vertModule, VkShaderModule fragModule, mtProgramConfig &config, mtProgram &program);
+    void destroyProgram(mtProgram &program);
 
     // Update a uniform on a program
-    b8 updateUniform(mtProgramHandle programHandle, const std::string& name, const void* data, u32 size);
+    b8 updateUniform(mtProgram &program, const std::string &name, const void *data, u32 size);
 
     // Get the material shader (builtin)
-    mtVulkanMaterialShader& getMaterialShader() { return _materialShader; }
+    mtVulkanMaterialShader &getMaterialShader() { return _materialShader; }
 
-private:
-    mtVulkanDevice& _device;
-    mtVulkanMaterialShader& _materialShader;
+  private:
+    mtVulkanDevice &_device;
+    mtVulkanMaterialShader &_materialShader;
 
     // Stored shader modules keyed by a simple ID
-    struct StoredShaderModule {
-        VkShaderModule module = VK_NULL_HANDLE;
-        VkShaderStageFlagBits stage;
-        u32 refCount = 0;
-    };
-
-    StoredShaderModule _shaderModules[MT_SHADER_MAX_COUNT] = {};
-    mtVulkanProgram _programs[MT_SHADER_MAX_COUNT] = {};
+    // StoredShaderModule _shaderModules[MT_SHADER_MAX_COUNT] = {};
+    // mtVulkanProgram _programs[MT_SHADER_MAX_COUNT] = {};
 };

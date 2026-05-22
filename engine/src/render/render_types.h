@@ -34,15 +34,12 @@ struct mtTexture {
     s32 height;
     s32 channelCount;
     b8 hasTransparency;
-    void* internalData; // For backend-specific texture handle (e.g., Vulkan image view)
+    void *internalData; // For backend-specific texture handle (e.g., Vulkan image view)
 };
-
 
 struct mtTextureHandle {
     u32 id;
-    enum {
-        INVALID_HANDLE = 0xFFFF
-    };
+    enum { INVALID_HANDLE = 0xFFFF };
 };
 
 struct mtTextureInfo {
@@ -55,11 +52,11 @@ struct mtTextureInfo {
 //
 // shaders
 //
+enum class mtShaderType { VERTEX, FRAGMENT };
+
 struct mtShaderHandle {
     u32 id;
-    enum {
-        INVALID_HANDLE = 0xFFFF
-    };
+    enum { INVALID_HANDLE = 0xFFFF };
 };
 
 struct mtShader {
@@ -72,9 +69,7 @@ struct mtShader {
 //
 struct mtProgramHandle {
     u32 id;
-    enum {
-        INVALID_HANDLE = 0xFFFF
-    };
+    enum { INVALID_HANDLE = 0xFFFF };
 };
 
 struct mtProgram {
@@ -82,43 +77,11 @@ struct mtProgram {
     void *internalData;
 };
 
-enum class mtVertexAttributeType {
-    F32,
-    F32_2,
-    F32_3,
-    F32_4,
-    MAT3,
-    MAT4,
-    S8,
-    U8,
-    S16,
-    U16,
-    S32,
-    U32
-};
+enum class mtVertexAttributeType { F32, F32_2, F32_3, F32_4, MAT3, MAT4, S8, U8, S16, U16, S32, U32 };
 
-enum class mtUniformType {
-    F32,
-    F32_2,
-    F32_3,
-    F32_4,
-    S8,
-    U8,
-    S16,
-    U16,
-    S32,
-    U32,
-    MAT3,
-    MAT4,
-    SAMPER1D,
-    SAMPER2D
-};
+enum class mtUniformType { F32, VEC2, VEC3, VEC4, S8, U8, S16, U16, S32, U32, MAT3, MAT4, SAMPER1D, SAMPER2D };
 
-enum class mtUniformScope {
-    GLOBAL,
-    INSTANCE,
-    LOCAL
-};
+enum class mtUniformScope { GLOBAL, INSTANCE, LOCAL };
 
 struct mtUniform {
     std::string name;
@@ -140,7 +103,8 @@ struct mtGeometry {
 
 struct mtRenderGeometry {
     mtGeometry geometry;
-    mtTexture* texture;
+    mtTexture *texture;
+    mtProgram *program;
 };
 
 // struct mtTexture {
