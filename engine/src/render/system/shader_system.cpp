@@ -5,6 +5,16 @@
 #include <sstream>
 #include <vulkan/vulkan.h>
 
+template <mtUniformType type, typename T, unsigned int N> struct mtUniformTypeTemplate {
+    static constexpr mtUniformType Type = type;
+    static constexpr unsigned int Size = sizeof(T) * N;
+    static constexpr const char *Name = "template";
+};
+
+struct mtUniformVec2 : mtUniformTypeTemplate<mtUniformType::VEC2, float, 2> {
+    static constexpr const char *name = "vec2";
+};
+
 // 着色器资源根目录（相对于 bin 工作目录）
 static const char *SHADER_ASSET_DIR = "assets/shaders/";
 
@@ -130,8 +140,9 @@ void mtShaderSystem::releaseProgram(const std::string &shaderName) {
 static mtUniformType parseUniformType(const std::string &typeStr) {
     if (typeStr == "f32")
         return mtUniformType::F32;
-    if (typeStr == "vec2")
-        return mtUniformType::VEC2;
+    if (typeStr == "vec2") {
+        return mtUniformVec2::Type;
+    }
     if (typeStr == "vec3")
         return mtUniformType::VEC3;
     if (typeStr == "vec4")
@@ -197,7 +208,7 @@ b8 mtShaderSystem::parseShaderYaml(const std::string &yamlPath, std::string &out
                 uni.scope =
                     uniNode["scope"] ? static_cast<mtUniformScope>(uniNode["scope"].as<u32>()) : mtUniformScope::GLOBAL;
 
-                uni.location = static_cast<u32>(outConfig.uniforms.size());
+                uni.offset = static_cast<u32>(outConfig.uniforms.size());
 
                 outConfig.uniforms.push_back(uni);
             }

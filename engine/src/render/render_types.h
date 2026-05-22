@@ -87,11 +87,15 @@ struct mtUniform {
     std::string name;
     mtUniformType type;
     mtUniformScope scope;
+    u32 offset;
     u32 location;
 };
 
 struct mtProgramConfig {
     std::vector<mtUniform> uniforms;
+    u32 globalUboSize;
+    u32 instanceUboSize;
+    u32 samplersCount;
 };
 
 struct mtGeometry {
